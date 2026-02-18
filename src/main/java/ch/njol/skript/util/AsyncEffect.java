@@ -1,6 +1,5 @@
 package ch.njol.skript.util;
 
-import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.Nullable;
 
@@ -13,7 +12,8 @@ import ch.njol.skript.timings.SkriptTimings;
 import ch.njol.skript.variables.Variables;
 
 /**
- * Effects that extend this class are ran asynchronously. Next trigger item will be ran
+ * Effects that extend this class are ran asynchronously. Next trigger item will
+ * be ran
  * in main server thread, as if there had been a delay before.
  * <p>
  * Majority of Skript and Minecraft APIs are not thread-safe, so be careful.
@@ -22,7 +22,7 @@ import ch.njol.skript.variables.Variables;
  * {@link ch.njol.util.Kleenean#TRUE} in the {@code init} method.
  */
 public abstract class AsyncEffect extends Effect {
-	
+
 	@Override
 	@Nullable
 	protected TriggerItem walk(Event e) {
@@ -33,16 +33,16 @@ public abstract class AsyncEffect extends Effect {
 		if (!Skript.getInstance().isEnabled()) // See https://github.com/SkriptLang/Skript/issues/3702
 			return null;
 
-		Bukkit.getScheduler().runTaskAsynchronously(Skript.getInstance(), () -> {
+		FoliaCompat.runTaskAsync(Skript.getInstance(), () -> {
 			Delay.addDelayedEvent(e); // Mark this event as delayed
 			// Re-set local variables
 			if (localVars != null)
 				Variables.setLocalVariables(e, localVars);
-			
+
 			execute(e); // Execute this effect
-			
+
 			if (getNext() != null) {
-				Bukkit.getScheduler().runTask(Skript.getInstance(), () -> { // Walk to next item synchronously
+				FoliaCompat.runTask(Skript.getInstance(), () -> { // Walk to next item synchronously
 					Object timing = null;
 					if (SkriptTimings.enabled()) { // getTrigger call is not free, do it only if we must
 						Trigger trigger = getTrigger();
@@ -50,11 +50,11 @@ public abstract class AsyncEffect extends Effect {
 							timing = SkriptTimings.start(trigger.getDebugLabel());
 						}
 					}
-					
+
 					TriggerItem.walk(getNext(), e);
-					
+
 					Variables.removeLocals(e); // Clean up local vars, we may be exiting now
-					
+
 					SkriptTimings.stop(timing); // Stop timing if it was even started
 				});
 			} else {

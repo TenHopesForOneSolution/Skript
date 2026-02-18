@@ -13,9 +13,9 @@ import ch.njol.skript.lang.Trigger;
 import ch.njol.skript.lang.TriggerItem;
 import ch.njol.skript.timings.SkriptTimings;
 import ch.njol.skript.util.Timespan;
+import ch.njol.skript.util.FoliaCompat;
 import ch.njol.skript.variables.Variables;
 import ch.njol.util.Kleenean;
-import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,7 +38,7 @@ public class Delay extends Effect {
 	@SuppressWarnings("NotNullFieldNotInitialized")
 	protected Expression<Timespan> duration;
 
-	@SuppressWarnings({"unchecked", "null"})
+	@SuppressWarnings({ "unchecked", "null" })
 	@Override
 	public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, ParseResult parseResult) {
 		getParser().setHasDelayBefore(Kleenean.TRUE);
@@ -70,19 +70,21 @@ public class Delay extends Effect {
 			Timespan duration = this.duration.getSingle(event);
 			if (duration == null)
 				return null;
-			
+
 			// Back up local variables
 			Object localVars = Variables.removeLocals(event);
-			
-			Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), () -> {
+
+			FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), () -> {
 				addDelayedEvent(event);
-				Skript.debug(getIndentation() + "... continuing after " + (System.nanoTime() - start) / 1_000_000_000. + "s");
+				Skript.debug(getIndentation() + "... continuing after " + (System.nanoTime() - start) / 1_000_000_000.
+						+ "s");
 
 				// Re-set local variables
 				if (localVars != null)
 					Variables.setLocalVariables(event, localVars);
 
-				Object timing = null; // Timings reference must be kept so that it can be stopped after TriggerItem execution
+				Object timing = null; // Timings reference must be kept so that it can be stopped after TriggerItem
+										// execution
 				if (SkriptTimings.enabled()) { // getTrigger call is not free, do it only if we must
 					Trigger trigger = getTrigger();
 					if (trigger != null)
@@ -93,7 +95,8 @@ public class Delay extends Effect {
 				Variables.removeLocals(event); // Clean up local vars, we may be exiting now
 
 				SkriptTimings.stop(timing); // Stop timing if it was even started
-			}, Math.max(duration.getAs(Timespan.TimePeriod.TICK), 1)); // Minimum delay is one tick, less than it is useless!
+			}, Math.max(duration.getAs(Timespan.TimePeriod.TICK), 1)); // Minimum delay is one tick, less than it is
+																		// useless!
 		}
 		return null;
 	}
@@ -108,11 +111,13 @@ public class Delay extends Effect {
 		return "wait for " + duration.toString(event, debug) + (event == null ? "" : "...");
 	}
 
-	private static final Set<Event> DELAYED =
-		Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
+	private static final Set<Event> DELAYED = Collections
+			.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
 
 	/**
-	 * The main method for checking if the execution of {@link TriggerItem}s has been delayed.
+	 * The main method for checking if the execution of {@link TriggerItem}s has
+	 * been delayed.
+	 * 
 	 * @param event The event to check for a delay.
 	 * @return Whether {@link TriggerItem} execution has been delayed.
 	 */
@@ -122,6 +127,7 @@ public class Delay extends Effect {
 
 	/**
 	 * The main method for marking the execution of {@link TriggerItem}s as delayed.
+	 * 
 	 * @param event The event to mark as delayed.
 	 */
 	public static void addDelayedEvent(Event event) {

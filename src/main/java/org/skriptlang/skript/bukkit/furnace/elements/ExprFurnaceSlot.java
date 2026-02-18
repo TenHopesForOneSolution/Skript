@@ -16,7 +16,7 @@ import ch.njol.skript.util.slot.InventorySlot;
 import ch.njol.skript.util.slot.Slot;
 import ch.njol.util.Kleenean;
 import ch.njol.util.Math2;
-import org.bukkit.Bukkit;
+import ch.njol.skript.util.FoliaCompat;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -36,17 +36,17 @@ import java.util.List;
 
 @Name("Furnace Slot")
 @Description({
-	"A slot of a furnace, i.e. either the ore, fuel or result slot."
+		"A slot of a furnace, i.e. either the ore, fuel or result slot."
 })
 @Example("set the fuel slot of the clicked block to a lava bucket")
 @Example("set the block's ore slot to 64 iron ore")
 @Example("clear the result slot of the block")
 @Example("""
-	on smelt:
-		if the fuel slot is charcoal:
-			add 5 seconds to the burn time
-	""")
-@Events({"smelt", "fuel burn"})
+		on smelt:
+			if the fuel slot is charcoal:
+				add 5 seconds to the burn time
+		""")
+@Events({ "smelt", "fuel burn" })
 @Since("1.0, 2.8.0 (syntax rework)")
 public class ExprFurnaceSlot extends SimpleExpression<Slot> {
 
@@ -74,7 +74,6 @@ public class ExprFurnaceSlot extends SimpleExpression<Slot> {
 		Skript.registerExpression(ExprFurnaceSlot.class, Slot.class, ExpressionType.PROPERTY, patterns);
 	}
 
-
 	private @Nullable Expression<Block> blocks;
 	private FurnaceSlot selectedSlot;
 	private boolean isEvent;
@@ -83,10 +82,11 @@ public class ExprFurnaceSlot extends SimpleExpression<Slot> {
 	public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, ParseResult parseResult) {
 		selectedSlot = furnaceSlots[(int) Math2.floor(matchedPattern / 2)];
 		if (exprs[0] != null) {
-			//noinspection unchecked
+			// noinspection unchecked
 			blocks = (Expression<Block>) exprs[0];
 		} else {
-			if (!getParser().isCurrentEvent(FurnaceBurnEvent.class, FurnaceStartSmeltEvent.class, FurnaceExtractEvent.class, FurnaceSmeltEvent.class)) {
+			if (!getParser().isCurrentEvent(FurnaceBurnEvent.class, FurnaceStartSmeltEvent.class,
+					FurnaceExtractEvent.class, FurnaceSmeltEvent.class)) {
 				Skript.error("There's no furnace in a " + getParser().getCurrentEventName() + " event.");
 				return false;
 			}
@@ -182,7 +182,8 @@ public class ExprFurnaceSlot extends SimpleExpression<Slot> {
 							yield fuel;
 						// a single lava bucket becomes an empty bucket
 						// see https://minecraft.wiki/w/Smelting#Fuel
-						// this is declared here because setting the amount to 0 may cause the ItemStack to become AIR
+						// this is declared here because setting the amount to 0 may cause the ItemStack
+						// to become AIR
 						Material newMaterial = fuel.getType() == Material.LAVA_BUCKET ? Material.BUCKET : Material.AIR;
 						fuel.setAmount(fuel.getAmount() - 1);
 						if (fuel.getAmount() == 0)
@@ -217,7 +218,8 @@ public class ExprFurnaceSlot extends SimpleExpression<Slot> {
 				furnaceSmeltEvent.setResult(item != null ? item : new ItemStack(Material.AIR));
 			} else {
 				if (getTime() == EventValues.TIME_FUTURE) { // Since this is a future expression, run it AFTER the event
-					Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), () -> FurnaceEventSlot.super.setItem(item));
+					FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(),
+							() -> FurnaceEventSlot.super.setItem(item));
 				} else {
 					super.setItem(item);
 				}

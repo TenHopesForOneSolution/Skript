@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import ch.njol.skript.util.FoliaCompat;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
@@ -19,14 +20,14 @@ import ch.njol.skript.effects.EffCancelEvent;
  * Tracks click events to remove extraneous events for one player click.
  */
 public class ClickEventTracker {
-	
+
 	private static class TrackedEvent {
-		
+
 		/**
 		 * The actual event that is tracked.
 		 */
 		final Cancellable event;
-		
+
 		/**
 		 * Hand used in event.
 		 */
@@ -37,35 +38,36 @@ public class ClickEventTracker {
 			this.event = event;
 			this.hand = hand;
 		}
-		
+
 	}
-	
+
 	/**
 	 * First events by players during this tick. They're stored by their UUIDs.
 	 * This map is cleared once per tick.
 	 */
 	final Map<UUID, TrackedEvent> firstEvents;
-	
+
 	/**
 	 * Events that have been cancelled with {@link EffCancelEvent}.
 	 */
 	private final Set<Cancellable> modifiedEvents;
-	
+
 	public ClickEventTracker(JavaPlugin plugin) {
 		this.firstEvents = new HashMap<>();
 		this.modifiedEvents = new HashSet<>();
-		Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin,
+		FoliaCompat.runTaskTimer(plugin,
 				() -> {
 					firstEvents.clear();
 					modifiedEvents.clear();
 				}, 1, 1);
 	}
-	
+
 	/**
 	 * Processes a click event from a player.
+	 * 
 	 * @param player Player who caused it.
-	 * @param event The event.
-	 * @param hand Slot associated with the event.
+	 * @param event  The event.
+	 * @param hand   Slot associated with the event.
 	 * @return If the event should be passed to scripts.
 	 */
 	public boolean checkEvent(Player player, Cancellable event, EquipmentSlot hand) {
@@ -77,7 +79,7 @@ public class ClickEventTracker {
 				// This avoids issues like #2389
 				return false;
 			}
-			
+
 			// Ignore this, but set its cancelled status based on one set to first event
 			if (event instanceof PlayerInteractEvent) { // Handle use item/block separately
 				// Failing to do so caused issue SkriptLang/Skript#2303
@@ -94,9 +96,10 @@ public class ClickEventTracker {
 			return true;
 		}
 	}
-	
+
 	/**
 	 * Records that given event was cancelled or uncancelled.
+	 * 
 	 * @param event The event.
 	 */
 	public void eventModified(Cancellable event) {

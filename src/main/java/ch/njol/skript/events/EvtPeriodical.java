@@ -8,7 +8,8 @@ import ch.njol.skript.lang.Literal;
 import ch.njol.skript.lang.SkriptEvent;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.util.Timespan;
-import org.bukkit.Bukkit;
+import ch.njol.skript.util.FoliaCompat;
+import ch.njol.skript.util.FoliaCompat.FoliaTaskHandle;
 import org.bukkit.World;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.Nullable;
@@ -19,27 +20,28 @@ public class EvtPeriodical extends SkriptEvent {
 		Skript.registerEvent("*Periodical", EvtPeriodical.class, ScheduledNoWorldEvent.class, "every %timespan%")
 				.description("An event that is called periodically.")
 				.examples(
-					"every 2 seconds:",
-					"every minecraft hour:",
-					"every tick: # can cause lag depending on the code inside the event",
-					"every minecraft days:"
-				).since("1.0");
-		Skript.registerEvent("*Periodical", EvtPeriodical.class, ScheduledEvent.class, "every %timespan% in [world[s]] %worlds%")
+						"every 2 seconds:",
+						"every minecraft hour:",
+						"every tick: # can cause lag depending on the code inside the event",
+						"every minecraft days:")
+				.since("1.0");
+		Skript.registerEvent("*Periodical", EvtPeriodical.class, ScheduledEvent.class,
+				"every %timespan% in [world[s]] %worlds%")
 				.description("An event that is called periodically.")
 				.examples(
-					"every 2 seconds in \"world\":",
-					"every minecraft hour in \"flatworld\":",
-					"every tick in \"world\": # can cause lag depending on the code inside the event",
-					"every minecraft days in \"plots\":"
-				).since("1.0")
+						"every 2 seconds in \"world\":",
+						"every minecraft hour in \"flatworld\":",
+						"every tick in \"world\": # can cause lag depending on the code inside the event",
+						"every minecraft days in \"plots\":")
+				.since("1.0")
 				.documentationID("eventperiodical");
 	}
-	
+
 	@SuppressWarnings("NotNullFieldNotInitialized")
 	private Timespan period;
 
 	@SuppressWarnings("NotNullFieldNotInitialized")
-	private int[] taskIDs;
+	private FoliaTaskHandle[] taskHandles;
 
 	private World @Nullable [] worlds;
 
@@ -57,18 +59,16 @@ public class EvtPeriodical extends SkriptEvent {
 		long ticks = period.getAs(Timespan.TimePeriod.TICK);
 
 		if (worlds == null) {
-			taskIDs = new int[]{
-				Bukkit.getScheduler().scheduleSyncRepeatingTask(
-					Skript.getInstance(), () -> execute(null), ticks, ticks
-				)
+			taskHandles = new FoliaTaskHandle[] {
+					FoliaCompat.runTaskTimer(
+							Skript.getInstance(), () -> execute(null), ticks, ticks)
 			};
 		} else {
-			taskIDs = new int[worlds.length];
+			taskHandles = new FoliaTaskHandle[worlds.length];
 			for (int i = 0; i < worlds.length; i++) {
 				World world = worlds[i];
-				taskIDs[i] = Bukkit.getScheduler().scheduleSyncRepeatingTask(
-					Skript.getInstance(), () -> execute(world), ticks - (world.getFullTime() % ticks), ticks
-				);
+				taskHandles[i] = FoliaCompat.runTaskTimer(
+						Skript.getInstance(), () -> execute(world), ticks - (world.getFullTime() % ticks), ticks);
 			}
 		}
 
@@ -77,8 +77,8 @@ public class EvtPeriodical extends SkriptEvent {
 
 	@Override
 	public void unload() {
-		for (int taskID : taskIDs)
-			Bukkit.getScheduler().cancelTask(taskID);
+		for (FoliaTaskHandle handle : taskHandles)
+			handle.cancel();
 	}
 
 	@Override
@@ -90,7 +90,7 @@ public class EvtPeriodical extends SkriptEvent {
 	public boolean isEventPrioritySupported() {
 		return false;
 	}
-	
+
 	@Override
 	public String toString(@Nullable Event event, boolean debug) {
 		return "every " + period;
@@ -104,5 +104,5 @@ public class EvtPeriodical extends SkriptEvent {
 		SkriptEventHandler.logTriggerEnd(trigger);
 		SkriptEventHandler.logEventEnd();
 	}
-	
+
 }

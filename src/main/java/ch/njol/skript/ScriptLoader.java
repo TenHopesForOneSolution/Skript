@@ -2,6 +2,7 @@ package ch.njol.skript;
 
 import ch.njol.skript.config.Config;
 import ch.njol.skript.config.Node;
+import ch.njol.skript.util.FoliaCompat;
 import ch.njol.skript.config.SectionNode;
 import ch.njol.skript.config.SimpleNode;
 import ch.njol.skript.events.bukkit.PreScriptLoadEvent;
@@ -53,8 +54,8 @@ public class ScriptLoader {
 	/**
 	 * A class for keeping track of the general content of a script:
 	 * <ul>
-	 *     <li>The amount of files</li>
-	 *     <li>The amount of structures</li>
+	 * <li>The amount of files</li>
+	 * <li>The amount of structures</li>
 	 * </ul>
 	 */
 	public static class ScriptInfo {
@@ -71,6 +72,7 @@ public class ScriptLoader {
 
 		/**
 		 * Copy constructor.
+		 * 
 		 * @param other ScriptInfo to copy from
 		 */
 		public ScriptInfo(ScriptInfo other) {
@@ -105,53 +107,59 @@ public class ScriptLoader {
 	 * Enabled/disabled script tracking
 	 */
 
-	// TODO We need to track scripts in the process of loading so that they may not be [re]loaded while they are already loading (for async loading)
+	// TODO We need to track scripts in the process of loading so that they may not
+	// be [re]loaded while they are already loading (for async loading)
 
 	/**
 	 * All loaded scripts.
 	 */
 	@SuppressWarnings("null")
-	private static final Set<Script> loadedScripts = Collections.synchronizedSortedSet(new TreeSet<>(new Comparator<Script>() {
-		@Override
-		public int compare(Script s1, Script s2) {
-			File f1 = s1.getConfig().getFile();
-			File f2 = s2.getConfig().getFile();
-			if (f1 == null || f2 == null)
-				throw new IllegalArgumentException("Scripts will null config files cannot be sorted.");
+	private static final Set<Script> loadedScripts = Collections
+			.synchronizedSortedSet(new TreeSet<>(new Comparator<Script>() {
+				@Override
+				public int compare(Script s1, Script s2) {
+					File f1 = s1.getConfig().getFile();
+					File f2 = s2.getConfig().getFile();
+					if (f1 == null || f2 == null)
+						throw new IllegalArgumentException("Scripts will null config files cannot be sorted.");
 
-			File f1Parent = f1.getParentFile();
-			File f2Parent = f2.getParentFile();
+					File f1Parent = f1.getParentFile();
+					File f2Parent = f2.getParentFile();
 
-			if (isSubDir(f1Parent, f2Parent))
-				return -1;
+					if (isSubDir(f1Parent, f2Parent))
+						return -1;
 
-			if (isSubDir(f2Parent, f1Parent))
-				return 1;
+					if (isSubDir(f2Parent, f1Parent))
+						return 1;
 
-			return f1.compareTo(f2);
-		}
+					return f1.compareTo(f2);
+				}
 
-		private boolean isSubDir(File directory, File subDir) {
-			for (File parentDir = directory.getParentFile(); parentDir != null; parentDir = parentDir.getParentFile()) {
-				if (subDir.equals(parentDir))
-					return true;
-			}
-			return false;
-		}
-	}));
+				private boolean isSubDir(File directory, File subDir) {
+					for (File parentDir = directory.getParentFile(); parentDir != null; parentDir = parentDir
+							.getParentFile()) {
+						if (subDir.equals(parentDir))
+							return true;
+					}
+					return false;
+				}
+			}));
 
 	/**
 	 * Filter for loaded scripts and folders.
 	 */
-	private static final FileFilter loadedScriptFilter =
-		f -> f != null
-			&& (f.isDirectory() && !f.getName().startsWith(".") || !f.isDirectory() && StringUtils.endsWithIgnoreCase(f.getName(), ".sk"))
+	private static final FileFilter loadedScriptFilter = f -> f != null
+			&& (f.isDirectory() && !f.getName().startsWith(".")
+					|| !f.isDirectory() && StringUtils.endsWithIgnoreCase(f.getName(), ".sk"))
 			&& !f.getName().startsWith(DISABLED_SCRIPT_PREFIX) && !f.isHidden();
 
 	/**
-	 * Searches through the loaded scripts to find the script loaded from the provided file.
+	 * Searches through the loaded scripts to find the script loaded from the
+	 * provided file.
+	 * 
 	 * @param file The file containing the script to find. Must not be a directory.
-	 * @return The script loaded from the provided file, or null if no script was found.
+	 * @return The script loaded from the provided file, or null if no script was
+	 *         found.
 	 */
 	@Nullable
 	public static Script getScript(File file) {
@@ -165,16 +173,19 @@ public class ScriptLoader {
 	}
 
 	/**
-	 * Searches through the loaded scripts to find all scripts loaded from the files contained within the provided directory.
+	 * Searches through the loaded scripts to find all scripts loaded from the files
+	 * contained within the provided directory.
+	 * 
 	 * @param directory The directory containing scripts to find.
 	 * @return The scripts loaded from the files of the provided directory.
-	 * 	Empty if no scripts were found.
+	 *         Empty if no scripts were found.
 	 */
 	public static Set<Script> getScripts(File directory) {
 		if (!directory.isDirectory())
 			throw new IllegalArgumentException("Something other than a directory was provided.");
 		Set<Script> scripts = new HashSet<>();
-		//noinspection ConstantConditions - If listFiles still manages to return null, we should probably let the exception print
+		// noinspection ConstantConditions - If listFiles still manages to return null,
+		// we should probably let the exception print
 		for (File file : directory.listFiles(loadedScriptFilter)) {
 			if (file.isDirectory()) {
 				scripts.addAll(getScripts(file));
@@ -195,27 +206,27 @@ public class ScriptLoader {
 	/**
 	 * Filter for disabled scripts and folders.
 	 */
-	private static final FileFilter disabledScriptFilter =
-		f -> f != null
-			&& (f.isDirectory() && !f.getName().startsWith(".") || !f.isDirectory() && StringUtils.endsWithIgnoreCase(f.getName(), ".sk"))
+	private static final FileFilter disabledScriptFilter = f -> f != null
+			&& (f.isDirectory() && !f.getName().startsWith(".")
+					|| !f.isDirectory() && StringUtils.endsWithIgnoreCase(f.getName(), ".sk"))
 			&& f.getName().startsWith(DISABLED_SCRIPT_PREFIX) && !f.isHidden();
 
 	/**
 	 * Reevaluates {@link #disabledScripts}.
+	 * 
 	 * @param path the scripts folder to use for the reevaluation.
 	 */
 	static void updateDisabledScripts(Path path) {
 		disabledScripts.clear();
 		try (Stream<Path> files = Files.walk(path)) {
 			files.map(Path::toFile)
-				.filter(disabledScriptFilter::accept)
-				.forEach(disabledScripts::add);
+					.filter(disabledScriptFilter::accept)
+					.forEach(disabledScripts::add);
 		} catch (Exception e) {
-			//noinspection ThrowableNotThrown
+			// noinspection ThrowableNotThrown
 			Skript.exception(e, "An error occurred while trying to update the list of disabled scripts!");
 		}
 	}
-
 
 	/*
 	 * Async loading
@@ -226,12 +237,14 @@ public class ScriptLoader {
 	 * <br>
 	 * This queue should only be used when {@link #isAsync()} returns true,
 	 * otherwise this queue is not used.
+	 * 
 	 * @see AsyncLoaderThread
 	 */
 	private static final BlockingQueue<Runnable> loadQueue = new LinkedBlockingQueue<>();
 
 	/**
 	 * The {@link ThreadGroup} all async loaders belong to.
+	 * 
 	 * @see AsyncLoaderThread
 	 */
 	private static final ThreadGroup asyncLoaderThreadGroup = new ThreadGroup("Skript async loaders");
@@ -246,7 +259,8 @@ public class ScriptLoader {
 	 * <br>
 	 * Should always be equal to the size of {@link #loaderThreads},
 	 * unless {@link #isAsync()} returns false.
-	 * This condition might be false during the execution of {@link #setAsyncLoaderSize(int)}.
+	 * This condition might be false during the execution of
+	 * {@link #setAsyncLoaderSize(int)}.
 	 */
 	private static int asyncLoaderSize;
 
@@ -260,13 +274,14 @@ public class ScriptLoader {
 	 * Checks if scripts are loaded in separate thread. If true,
 	 * following behavior should be expected:
 	 * <ul>
-	 *     <li>Scripts are still unloaded and enabled in server thread</li>
-	 * 	   <li>When reloading a script, old version is unloaded <i>after</i> it has
-	 * 	   been parsed, immediately before it has been loaded</li>
-	 * 	   <li>When reloading all scripts, scripts that were removed are disabled
-	 * 	   after everything has been reloaded</li>
-	 * 	   <li>Script infos returned by most methods are inaccurate</li>
+	 * <li>Scripts are still unloaded and enabled in server thread</li>
+	 * <li>When reloading a script, old version is unloaded <i>after</i> it has
+	 * been parsed, immediately before it has been loaded</li>
+	 * <li>When reloading all scripts, scripts that were removed are disabled
+	 * after everything has been reloaded</li>
+	 * <li>Script infos returned by most methods are inaccurate</li>
 	 * </ul>
+	 * 
 	 * @return If main thread is not blocked when loading.
 	 */
 	public static boolean isAsync() {
@@ -276,6 +291,7 @@ public class ScriptLoader {
 	/**
 	 * Checks if scripts are loaded in multiple threads instead of one thread.
 	 * If true, {@link #isAsync()} will also be true.
+	 * 
 	 * @return if parallel loading is enabled.
 	 */
 	public static boolean isParallel() {
@@ -283,14 +299,17 @@ public class ScriptLoader {
 	}
 
 	/**
-	 * Returns the executor used for submitting tasks based on the user config.sk settings.
+	 * Returns the executor used for submitting tasks based on the user config.sk
+	 * settings.
 	 * 
 	 * The thread count will be based on the value of {@link #asyncLoaderSize}.
 	 * <p>
-	 * You may also use class {@link ch.njol.skript.util.Task} and the appropriate constructor
+	 * You may also use class {@link ch.njol.skript.util.Task} and the appropriate
+	 * constructor
 	 * to run tasks on the script loader executor.
 	 * 
-	 * @return the executor used for submitting tasks. Can be null if called before Skript loads config.sk
+	 * @return the executor used for submitting tasks. Can be null if called before
+	 *         Skript loads config.sk
 	 */
 	@UnknownNullability
 	public static Executor getExecutor() {
@@ -303,7 +322,8 @@ public class ScriptLoader {
 	 * <br>
 	 * If {@code size <= 0}, async and parallel loading are disabled.
 	 * <br>
-	 * If {@code size == 1}, async loading is enabled but parallel loading is disabled.
+	 * If {@code size == 1}, async loading is enabled but parallel loading is
+	 * disabled.
 	 * <br>
 	 * If {@code size >= 2}, async and parallel loading are enabled.
 	 *
@@ -329,13 +349,14 @@ public class ScriptLoader {
 
 		if (loaderThreads.size() != size)
 			throw new IllegalStateException();
-		
+
 		executor = Executors.newFixedThreadPool(asyncLoaderSize, new ThreadFactory() {
 			private final AtomicInteger threadId = new AtomicInteger(0);
 
 			@Override
 			public Thread newThread(Runnable runnable) {
-				Thread thread = new Thread(asyncLoaderThreadGroup, runnable, "Skript async loaders thread " + threadId.incrementAndGet());
+				Thread thread = new Thread(asyncLoaderThreadGroup, runnable,
+						"Skript async loaders thread " + threadId.incrementAndGet());
 				thread.setDaemon(true);
 				return thread;
 			}
@@ -344,8 +365,10 @@ public class ScriptLoader {
 
 	/**
 	 * This thread takes and executes tasks from the {@link #loadQueue}.
-	 * Instances of this class must be created with {@link AsyncLoaderThread#create()},
-	 * and created threads will always be part of the {@link #asyncLoaderThreadGroup}.
+	 * Instances of this class must be created with
+	 * {@link AsyncLoaderThread#create()},
+	 * and created threads will always be part of the
+	 * {@link #asyncLoaderThreadGroup}.
 	 */
 	private static class AsyncLoaderThread extends Thread {
 
@@ -372,7 +395,7 @@ public class ScriptLoader {
 					if (runnable != null)
 						runnable.run();
 				} catch (InterruptedException e) {
-					//noinspection ThrowableNotThrown
+					// noinspection ThrowableNotThrown
 					Skript.exception(e); // Bubble it up with instructions on how to report it
 				}
 			}
@@ -381,7 +404,8 @@ public class ScriptLoader {
 		/**
 		 * Tell the loader it should stop taking tasks.
 		 * <br>
-		 * If this thread is currently executing a task, it will stop when that task is done.
+		 * If this thread is currently executing a task, it will stop when that task is
+		 * done.
 		 * <br>
 		 * If this thread is not executing a task,
 		 * it is stopped after at most 100 milliseconds.
@@ -393,25 +417,29 @@ public class ScriptLoader {
 	}
 
 	/**
-	 * Creates a {@link CompletableFuture} using a {@link Supplier} and an {@link OpenCloseable}.
+	 * Creates a {@link CompletableFuture} using a {@link Supplier} and an
+	 * {@link OpenCloseable}.
 	 * <br>
 	 * The {@link Runnable} of this future should not throw any exceptions,
-	 * since it catches all exceptions thrown by the {@link Supplier} and {@link OpenCloseable}.
+	 * since it catches all exceptions thrown by the {@link Supplier} and
+	 * {@link OpenCloseable}.
 	 * <br>
 	 * If no exceptions are thrown, the future is completed by
 	 * calling {@link OpenCloseable#open()}, then {@link Supplier#get()}
 	 * followed by {@link OpenCloseable#close()}, where the result value is
 	 * given by the supplier call.
 	 * <br>
-	 * If an exception is thrown, the future is completed exceptionally with the caught exception,
+	 * If an exception is thrown, the future is completed exceptionally with the
+	 * caught exception,
 	 * and {@link Skript#exception(Throwable, String...)} is called.
 	 * <br>
 	 * The future is executed on an async loader thread, only if
 	 * both {@link #isAsync()} and {@link Bukkit#isPrimaryThread()} return true,
-	 * otherwise this future is executed immediately, and the returned future is already completed.
+	 * otherwise this future is executed immediately, and the returned future is
+	 * already completed.
 	 *
 	 * @return a {@link CompletableFuture} of the type specified by
-	 * the generic of the {@link Supplier} parameter.
+	 *         the generic of the {@link Supplier} parameter.
 	 */
 	private static <T> CompletableFuture<T> makeFuture(Supplier<T> supplier, OpenCloseable openCloseable) {
 		CompletableFuture<T> future = new CompletableFuture<>();
@@ -428,12 +456,12 @@ public class ScriptLoader {
 				future.complete(t);
 			} catch (Throwable t) {
 				future.completeExceptionally(t);
-				//noinspection ThrowableNotThrown
+				// noinspection ThrowableNotThrown
 				Skript.exception(t);
 			}
 		};
 
-		if (isAsync() && Bukkit.isPrimaryThread()) {
+		if (isAsync() && FoliaCompat.isTickThread()) {
 			loadQueue.add(task);
 		} else {
 			task.run();
@@ -442,45 +470,59 @@ public class ScriptLoader {
 		return future;
 	}
 
-
 	/*
 	 * Script Loading Methods
 	 */
 
 	/**
-	 * Loads the Script present at the file using {@link #loadScripts(List, OpenCloseable)},
-	 * 	sending info/error messages when done.
-	 * @param file The file to load. If this is a directory, all scripts within the directory and any subdirectories will be loaded.
-	 * @param openCloseable An {@link OpenCloseable} that will be called before and after
-	 *                         each individual script load (see {@link #makeFuture(Supplier, OpenCloseable)}).
+	 * Loads the Script present at the file using
+	 * {@link #loadScripts(List, OpenCloseable)},
+	 * sending info/error messages when done.
+	 * 
+	 * @param file          The file to load. If this is a directory, all scripts
+	 *                      within the directory and any subdirectories will be
+	 *                      loaded.
+	 * @param openCloseable An {@link OpenCloseable} that will be called before and
+	 *                      after
+	 *                      each individual script load (see
+	 *                      {@link #makeFuture(Supplier, OpenCloseable)}).
 	 */
 	public static CompletableFuture<ScriptInfo> loadScripts(File file, OpenCloseable openCloseable) {
 		return loadScripts(loadStructures(file), openCloseable);
 	}
 
 	/**
-	 * Loads the Scripts present at the files using {@link #loadScripts(List, OpenCloseable)},
-	 * 	sending info/error messages when done.
-	 * @param files The files to load. If any file is a directory, all scripts within the directory and any subdirectories will be loaded.
-	 * @param openCloseable An {@link OpenCloseable} that will be called before and after
-	 *                         each individual script load (see {@link #makeFuture(Supplier, OpenCloseable)}).
+	 * Loads the Scripts present at the files using
+	 * {@link #loadScripts(List, OpenCloseable)},
+	 * sending info/error messages when done.
+	 * 
+	 * @param files         The files to load. If any file is a directory, all
+	 *                      scripts within the directory and any subdirectories will
+	 *                      be loaded.
+	 * @param openCloseable An {@link OpenCloseable} that will be called before and
+	 *                      after
+	 *                      each individual script load (see
+	 *                      {@link #makeFuture(Supplier, OpenCloseable)}).
 	 */
 	public static CompletableFuture<ScriptInfo> loadScripts(Set<File> files, OpenCloseable openCloseable) {
 		return loadScripts(files.stream()
-			.sorted()
-			.map(ScriptLoader::loadStructures)
-			.flatMap(List::stream)
-			.collect(Collectors.toList()), openCloseable);
+				.sorted()
+				.map(ScriptLoader::loadStructures)
+				.flatMap(List::stream)
+				.collect(Collectors.toList()), openCloseable);
 	}
 
 	/**
 	 * Loads the specified scripts.
 	 *
-	 * @param configs Configs representing scripts.
-	 * @param openCloseable An {@link OpenCloseable} that will be called before and after
-	 *  each individual script load (see {@link #makeFuture(Supplier, OpenCloseable)}).
-	 * Note that this is also opened before the {@link Structure#preLoad()} stage
-	 *  and closed after the {@link Structure#postLoad()} stage.
+	 * @param configs       Configs representing scripts.
+	 * @param openCloseable An {@link OpenCloseable} that will be called before and
+	 *                      after
+	 *                      each individual script load (see
+	 *                      {@link #makeFuture(Supplier, OpenCloseable)}).
+	 *                      Note that this is also opened before the
+	 *                      {@link Structure#preLoad()} stage
+	 *                      and closed after the {@link Structure#postLoad()} stage.
 	 * @return Info on the loaded scripts.
 	 */
 	@SuppressWarnings("removal")
@@ -490,7 +532,7 @@ public class ScriptLoader {
 
 		eventRegistry().events(ScriptPreInitEvent.class)
 				.forEach(event -> event.onPreInit(configs));
-		//noinspection deprecation - we still need to call it
+		// noinspection deprecation - we still need to call it
 		Bukkit.getPluginManager().callEvent(new PreScriptLoadEvent(configs));
 
 		ScriptInfo scriptInfo = new ScriptInfo();
@@ -513,128 +555,134 @@ public class ScriptLoader {
 		}
 
 		return CompletableFuture.allOf(scriptInfoFutures.toArray(new CompletableFuture[0]))
-			.thenApply(unused -> {
-				// TODO in the future this won't work when parallel loading is fixed
-				// It does now though so let's avoid calling getParser() a bunch.
-				ParserInstance parser = getParser();
+				.thenApply(unused -> {
+					// TODO in the future this won't work when parallel loading is fixed
+					// It does now though so let's avoid calling getParser() a bunch.
+					ParserInstance parser = getParser();
 
-				try {
-					openCloseable.open();
+					try {
+						openCloseable.open();
 
-					// build sorted list
-					// this nest of pairs is terrible, but we need to keep the reference to the modifiable structures list
-					record LoadingStructure (LoadingScriptInfo loadingScriptInfo, Structure structure) {}
-					List<LoadingStructure> loadingStructures = scripts.stream()
-							.flatMap(info -> { // Flatten each entry down to a stream of Script-Structure pairs
-								return info.structures.stream()
-										.map(structure -> new LoadingStructure(info, structure));
-							})
-							.sorted(Comparator.comparing(pair -> pair.structure().getPriority()))
-							.collect(Collectors.toCollection(ArrayList::new));
+						// build sorted list
+						// this nest of pairs is terrible, but we need to keep the reference to the
+						// modifiable structures list
+						record LoadingStructure(LoadingScriptInfo loadingScriptInfo, Structure structure) {
+						}
+						List<LoadingStructure> loadingStructures = scripts.stream()
+								.flatMap(info -> { // Flatten each entry down to a stream of Script-Structure pairs
+									return info.structures.stream()
+											.map(structure -> new LoadingStructure(info, structure));
+								})
+								.sorted(Comparator.comparing(pair -> pair.structure().getPriority()))
+								.collect(Collectors.toCollection(ArrayList::new));
 
-					// pre-loading
-					loadingStructures.removeIf(loadingStructure -> {
-						LoadingScriptInfo loadingInfo = loadingStructure.loadingScriptInfo();
-						Structure structure = loadingStructure.structure();
+						// pre-loading
+						loadingStructures.removeIf(loadingStructure -> {
+							LoadingScriptInfo loadingInfo = loadingStructure.loadingScriptInfo();
+							Structure structure = loadingStructure.structure();
 
-						parser.setActive(loadingInfo.script);
-						parser.setCurrentStructure(structure);
-						parser.setNode(loadingInfo.nodeMap.get(structure));
+							parser.setActive(loadingInfo.script);
+							parser.setCurrentStructure(structure);
+							parser.setNode(loadingInfo.nodeMap.get(structure));
 
-						try {
-							if (!structure.preLoad()) {
+							try {
+								if (!structure.preLoad()) {
+									loadingInfo.structures.remove(structure);
+									return true;
+								}
+							} catch (Exception e) {
+								// noinspection ThrowableNotThrown
+								Skript.exception(e, "An error occurred while trying to preLoad a Structure.");
 								loadingInfo.structures.remove(structure);
 								return true;
 							}
-						} catch (Exception e) {
-							//noinspection ThrowableNotThrown
-							Skript.exception(e, "An error occurred while trying to preLoad a Structure.");
-							loadingInfo.structures.remove(structure);
-							return true;
-						}
-						return false;
-					});
-					parser.setInactive();
+							return false;
+						});
+						parser.setInactive();
 
-					// TODO in the future, Structure#load/Structure#postLoad should be split across multiple threads if parallel loading is enabled.
-					// However, this is not possible right now as reworks in multiple areas will be needed.
-					// For example, the "Commands" class still uses a static list for currentArguments that is cleared between loads.
-					// Until these reworks happen, limiting main loading to asynchronous (not parallel) is the only choice we have.
+						// TODO in the future, Structure#load/Structure#postLoad should be split across
+						// multiple threads if parallel loading is enabled.
+						// However, this is not possible right now as reworks in multiple areas will be
+						// needed.
+						// For example, the "Commands" class still uses a static list for
+						// currentArguments that is cleared between loads.
+						// Until these reworks happen, limiting main loading to asynchronous (not
+						// parallel) is the only choice we have.
 
-					// loading
-					loadingStructures.removeIf(loadingStructure -> {
-						LoadingScriptInfo loadingInfo = loadingStructure.loadingScriptInfo();
-						Structure structure = loadingStructure.structure();
+						// loading
+						loadingStructures.removeIf(loadingStructure -> {
+							LoadingScriptInfo loadingInfo = loadingStructure.loadingScriptInfo();
+							Structure structure = loadingStructure.structure();
 
-						parser.setActive(loadingInfo.script);
-						parser.setCurrentStructure(structure);
-						parser.setNode(loadingInfo.nodeMap.get(structure));
+							parser.setActive(loadingInfo.script);
+							parser.setCurrentStructure(structure);
+							parser.setNode(loadingInfo.nodeMap.get(structure));
 
-						try {
-							if (!structure.load()) {
+							try {
+								if (!structure.load()) {
+									loadingInfo.structures.remove(structure);
+									return true;
+								}
+							} catch (Exception e) {
+								// noinspection ThrowableNotThrown
+								Skript.exception(e, "An error occurred while trying to load a Structure.");
 								loadingInfo.structures.remove(structure);
 								return true;
 							}
-						} catch (Exception e) {
-							//noinspection ThrowableNotThrown
-							Skript.exception(e, "An error occurred while trying to load a Structure.");
-							loadingInfo.structures.remove(structure);
-							return true;
-						}
-						return false;
-					});
-					parser.setInactive();
+							return false;
+						});
+						parser.setInactive();
 
-					// post-loading
-					loadingStructures.removeIf(loadingStructure -> {
-						LoadingScriptInfo loadingInfo = loadingStructure.loadingScriptInfo();
-						Structure structure = loadingStructure.structure();
+						// post-loading
+						loadingStructures.removeIf(loadingStructure -> {
+							LoadingScriptInfo loadingInfo = loadingStructure.loadingScriptInfo();
+							Structure structure = loadingStructure.structure();
 
-						parser.setActive(loadingInfo.script);
-						parser.setCurrentStructure(structure);
-						parser.setNode(loadingInfo.nodeMap.get(structure));
+							parser.setActive(loadingInfo.script);
+							parser.setCurrentStructure(structure);
+							parser.setNode(loadingInfo.nodeMap.get(structure));
 
-						try {
-							if (!structure.postLoad()) {
+							try {
+								if (!structure.postLoad()) {
+									loadingInfo.structures.remove(structure);
+									return true;
+								}
+							} catch (Exception e) {
+								// noinspection ThrowableNotThrown
+								Skript.exception(e, "An error occurred while trying to postLoad a Structure.");
 								loadingInfo.structures.remove(structure);
 								return true;
 							}
-						} catch (Exception e) {
-							//noinspection ThrowableNotThrown
-							Skript.exception(e, "An error occurred while trying to postLoad a Structure.");
-							loadingInfo.structures.remove(structure);
-							return true;
-						}
-						return false;
-					});
-					parser.setInactive();
+							return false;
+						});
+						parser.setInactive();
 
-					// trigger events
-					scripts.forEach(loadingInfo -> {
-						Script script = loadingInfo.script;
+						// trigger events
+						scripts.forEach(loadingInfo -> {
+							Script script = loadingInfo.script;
 
-						parser.setActive(script);
-						parser.setNode(script.getConfig().getMainNode());
+							parser.setActive(script);
+							parser.setNode(script.getConfig().getMainNode());
 
-						ScriptLoader.eventRegistry().events(ScriptLoadEvent.class)
-							.forEach(event -> event.onLoad(parser, script));
-						script.eventRegistry().events(ScriptLoadEvent.class)
-							.forEach(event -> event.onLoad(parser, script));
-					});
-					parser.setInactive();
+							ScriptLoader.eventRegistry().events(ScriptLoadEvent.class)
+									.forEach(event -> event.onLoad(parser, script));
+							script.eventRegistry().events(ScriptLoadEvent.class)
+									.forEach(event -> event.onLoad(parser, script));
+						});
+						parser.setInactive();
 
-					return scriptInfo;
-				} catch (Exception e) {
-					// Something went wrong, we need to make sure the exception is printed
-					throw Skript.exception(e);
-				} finally {
-					parser.setInactive();
+						return scriptInfo;
+					} catch (Exception e) {
+						// Something went wrong, we need to make sure the exception is printed
+						throw Skript.exception(e);
+					} finally {
+						parser.setInactive();
 
-					openCloseable.close();
-				}
-			}).exceptionally(t -> {
-				throw Skript.exception(t);
-			});
+						openCloseable.close();
+					}
+				}).exceptionally(t -> {
+					throw Skript.exception(t);
+				});
 	}
 
 	private static class LoadingScriptInfo {
@@ -655,8 +703,10 @@ public class ScriptLoader {
 
 	/**
 	 * Creates a script and loads the provided config into it.
+	 * 
 	 * @param config The config to load into a script.
-	 * @return A pair containing the script that was loaded and a modifiable version of the structures list.
+	 * @return A pair containing the script that was loaded and a modifiable version
+	 *         of the structures list.
 	 */
 	// Whenever you call this method, make sure to also call PreScriptLoadEvent
 	private static LoadingScriptInfo loadScript(Config config) {
@@ -703,11 +753,12 @@ public class ScriptLoader {
 
 				if (Skript.logHigh()) {
 					int count = structures.size();
-					Skript.info("loaded " + count + " structure" + (count == 1 ? "" : "s") + " from '" + config.getFileName() + "'");
+					Skript.info("loaded " + count + " structure" + (count == 1 ? "" : "s") + " from '"
+							+ config.getFileName() + "'");
 				}
 			}
 		} catch (Exception e) {
-			//noinspection ThrowableNotThrown
+			// noinspection ThrowableNotThrown
 			Skript.exception(e, "Could not load " + config.getFileName());
 		} finally {
 			parser.setInactive();
@@ -734,7 +785,7 @@ public class ScriptLoader {
 			try {
 				callable.call();
 			} catch (Exception e) {
-				//noinspection ThrowableNotThrown
+				// noinspection ThrowableNotThrown
 				Skript.exception(e);
 			}
 		}
@@ -747,8 +798,10 @@ public class ScriptLoader {
 	 */
 
 	/**
-	 * Creates a script structure for every file contained within the provided directory.
+	 * Creates a script structure for every file contained within the provided
+	 * directory.
 	 * If a directory is not actually provided, the file itself will be used.
+	 * 
 	 * @param directory The directory to create structures from.
 	 * @see ScriptLoader#loadStructure(File)
 	 * @return A list of all successfully loaded structures.
@@ -762,7 +815,7 @@ public class ScriptLoader {
 		try {
 			directory = directory.getCanonicalFile();
 		} catch (IOException e) {
-			//noinspection ThrowableNotThrown
+			// noinspection ThrowableNotThrown
 			Skript.exception(e, "An exception occurred while trying to get the canonical file of: " + directory);
 			return new ArrayList<>();
 		}
@@ -790,6 +843,7 @@ public class ScriptLoader {
 	/**
 	 * Creates a script structure from the provided file.
 	 * This must be done before actually loading a script.
+	 * 
 	 * @param file The script to load the structure of.
 	 * @return The loaded structure or null if an error occurred.
 	 */
@@ -798,7 +852,7 @@ public class ScriptLoader {
 		try {
 			file = file.getCanonicalFile();
 		} catch (IOException e) {
-			//noinspection ThrowableNotThrown
+			// noinspection ThrowableNotThrown
 			Skript.exception(e, "An exception occurred while trying to get the canonical file of: " + file);
 			return null;
 		}
@@ -824,21 +878,22 @@ public class ScriptLoader {
 	/**
 	 * Creates a script structure from the provided source.
 	 * This must be done before actually loading a script.
+	 * 
 	 * @param source Source input stream.
-	 * @param name Name of source "file".
+	 * @param name   Name of source "file".
 	 * @return The loaded structure or null if an error occurred.
 	 */
 	@Nullable
 	private static Config loadStructure(InputStream source, String name) {
 		try {
 			return new Config(
-				source,
-				name,
-				Skript.getInstance().getDataFolder().toPath().resolve(Skript.SCRIPTSFOLDER).resolve(name).toFile().getCanonicalFile(),
-				true,
-				false,
-				":"
-			);
+					source,
+					name,
+					Skript.getInstance().getDataFolder().toPath().resolve(Skript.SCRIPTSFOLDER).resolve(name).toFile()
+							.getCanonicalFile(),
+					true,
+					false,
+					":");
 		} catch (IOException e) {
 			Skript.error("Could not load " + name + ": " + ExceptionUtils.toString(e));
 		}
@@ -852,6 +907,7 @@ public class ScriptLoader {
 
 	/**
 	 * Unloads all scripts present in the provided collection.
+	 * 
 	 * @param scripts The scripts to unload.
 	 * @return Combined statistics for the unloaded scripts.
 	 *         This data is calculated by using {@link ScriptInfo#add(ScriptInfo)}.
@@ -866,24 +922,26 @@ public class ScriptLoader {
 		}
 
 		ParserInstance parser = getParser();
-		record UnloadingStructure (Script script, Structure structure) {}
-		Comparator<UnloadingStructure> unloadComparator = Comparator.comparing(unloadingStructure -> unloadingStructure.structure().getPriority());
+		record UnloadingStructure(Script script, Structure structure) {
+		}
+		Comparator<UnloadingStructure> unloadComparator = Comparator
+				.comparing(unloadingStructure -> unloadingStructure.structure().getPriority());
 		unloadComparator = unloadComparator.reversed();
 
 		List<UnloadingStructure> unloadingStructures = scripts.stream()
-			.flatMap(script -> { // Flatten each entry down to a stream of Script-Structure pairs
-				return script.getStructures().stream()
-					.map(structure -> new UnloadingStructure(script, structure));
-			})
-			.sorted(unloadComparator)
-			.collect(Collectors.toCollection(ArrayList::new));
+				.flatMap(script -> { // Flatten each entry down to a stream of Script-Structure pairs
+					return script.getStructures().stream()
+							.map(structure -> new UnloadingStructure(script, structure));
+				})
+				.sorted(unloadComparator)
+				.collect(Collectors.toCollection(ArrayList::new));
 
 		// trigger unload event before unloading scripts
 		for (Script script : scripts) {
 			eventRegistry().events(ScriptUnloadEvent.class)
-				.forEach(event -> event.onUnload(parser, script));
+					.forEach(event -> event.onUnload(parser, script));
 			script.eventRegistry().events(ScriptUnloadEvent.class)
-				.forEach(event -> event.onUnload(parser, script));
+					.forEach(event -> event.onUnload(parser, script));
 		}
 
 		// initial unload stage
@@ -927,6 +985,7 @@ public class ScriptLoader {
 
 	/**
 	 * Unloads the provided script.
+	 * 
 	 * @param script The script to unload.
 	 * @return Statistics for the unloaded script.
 	 */
@@ -940,6 +999,7 @@ public class ScriptLoader {
 
 	/**
 	 * Reloads a single Script.
+	 * 
 	 * @param script The Script to reload.
 	 * @return Info on the loaded Script.
 	 */
@@ -949,9 +1009,12 @@ public class ScriptLoader {
 
 	/**
 	 * Reloads all provided Scripts.
-	 * @param scripts The Scripts to reload.
-	 * @param openCloseable An {@link OpenCloseable} that will be called before and after
-	 *                         each individual Script load (see {@link #makeFuture(Supplier, OpenCloseable)}).
+	 * 
+	 * @param scripts       The Scripts to reload.
+	 * @param openCloseable An {@link OpenCloseable} that will be called before and
+	 *                      after
+	 *                      each individual Script load (see
+	 *                      {@link #makeFuture(Supplier, OpenCloseable)}).
 	 * @return Info on the loaded Scripts.
 	 */
 	public static CompletableFuture<ScriptInfo> reloadScripts(Set<Script> scripts, OpenCloseable openCloseable) {
@@ -959,7 +1022,7 @@ public class ScriptLoader {
 
 		List<Config> configs = new ArrayList<>();
 		for (Script script : scripts) {
-			//noinspection ConstantConditions - getFile should never return null
+			// noinspection ConstantConditions - getFile should never return null
 			Config config = loadStructure(script.getConfig().getFile());
 			if (config == null)
 				return CompletableFuture.completedFuture(new ScriptInfo());
@@ -978,7 +1041,8 @@ public class ScriptLoader {
 	 * Options are obtained from a {@link Script}'s {@link OptionsData}.
 	 * Example: <code>script.getData(OptionsData.class)</code>
 	 */
-	// TODO this system should eventually be replaced with a more generalized "node processing" system
+	// TODO this system should eventually be replaced with a more generalized "node
+	// processing" system
 	public static String replaceOptions(String string) {
 		ParserInstance parser = getParser();
 		if (!parser.isActive()) // getCurrentScript() is not safe to use
@@ -1005,7 +1069,8 @@ public class ScriptLoader {
 		// Track if the scope has been frozen
 		// This is the case when a statement that stops further execution is encountered
 		// Further statements would not run, meaning the hints from them are inaccurate
-		// When true, before exiting the scope, its hints are cleared to avoid passing them up
+		// When true, before exiting the scope, its hints are cleared to avoid passing
+		// them up
 		boolean freezeScope = false;
 
 		boolean executionStops = false;
@@ -1025,14 +1090,14 @@ public class ScriptLoader {
 				item = Statement.parse(expr, items, "Can't understand this condition/effect: " + expr);
 				if (item == null)
 					continue;
-				long requiredTime = SkriptConfig.longParseTimeWarningThreshold.value().getAs(Timespan.TimePeriod.MILLISECOND);
+				long requiredTime = SkriptConfig.longParseTimeWarningThreshold.value()
+						.getAs(Timespan.TimePeriod.MILLISECOND);
 				if (requiredTime > 0) {
 					long timeTaken = System.currentTimeMillis() - start;
 					if (timeTaken > requiredTime)
 						Skript.warning(
-							"The current line took a long time to parse (" + new Timespan(timeTaken) + ")."
-								+ " Avoid using long lines and use parentheses to create clearer instructions."
-						);
+								"The current line took a long time to parse (" + new Timespan(timeTaken) + ")."
+										+ " Avoid using long lines and use parentheses to create clearer instructions.");
 				}
 
 				if (Skript.debug() || subNode.debug())
@@ -1042,14 +1107,16 @@ public class ScriptLoader {
 			} else if (subNode instanceof SectionNode subSection) {
 
 				RetainingLogHandler handler = SkriptLogger.startRetainingLog();
-				find_section:
-				try {
+				find_section: try {
 					// enter capturing scope
-					// it is possible that the line may successfully parse and initialize (via init), but some other issue
+					// it is possible that the line may successfully parse and initialize (via
+					// init), but some other issue
 					// prevents it from being able to load. for example:
 					// - a statement with a section that has no expression to claim the section
-					// - a statement with a section that has multiple expressions attempting to claim the section
-					// thus, hints may be added, but we do not want to save them as the line is invalid
+					// - a statement with a section that has multiple expressions attempting to
+					// claim the section
+					// thus, hints may be added, but we do not want to save them as the line is
+					// invalid
 					parser.getHintManager().enterScope(false);
 
 					item = Section.parse(expr, "Can't understand this section: " + expr, subSection, items);
@@ -1071,9 +1138,9 @@ public class ScriptLoader {
 					// 2. the error message is the default one from the statement parse
 					// 3. the backup log contains a message about the section being claimed
 					if (errors.isEmpty()
-						|| errors.iterator().next().getMessage().contains("Can't understand this condition/effect:")
-						|| backup.getErrors().iterator().next().getMessage().contains("tried to claim the current section, but it was already claimed by")
-					) {
+							|| errors.iterator().next().getMessage().contains("Can't understand this condition/effect:")
+							|| backup.getErrors().iterator().next().getMessage()
+									.contains("tried to claim the current section, but it was already claimed by")) {
 						handler.restore(backup);
 					}
 					continue;
@@ -1116,7 +1183,8 @@ public class ScriptLoader {
 			}
 		}
 
-		// If the scope was frozen, then we need to clear it to prevent passing up inaccurate hints
+		// If the scope was frozen, then we need to clear it to prevent passing up
+		// inaccurate hints
 		// They will have already been copied as necessary
 		if (freezeScope) {
 			parser.getHintManager().clearScope(0, false);
@@ -1139,7 +1207,8 @@ public class ScriptLoader {
 	 * Creates a Script object for a file (or resource) that may (or may not) exist.
 	 * This is used for providing handles for disabled scripts.
 	 * <br/>
-	 * This does <em>not</em> load (or parse or open or do anything to) the given file.
+	 * This does <em>not</em> load (or parse or open or do anything to) the given
+	 * file.
 	 *
 	 * @return An unlinked, empty script object with an empty backing config
 	 */
@@ -1154,16 +1223,20 @@ public class ScriptLoader {
 	 */
 
 	/**
-	 * @return An unmodifiable set containing a snapshot of the currently loaded scripts.
-	 * Any changes to loaded scripts will not be reflected in the returned set.
+	 * @return An unmodifiable set containing a snapshot of the currently loaded
+	 *         scripts.
+	 *         Any changes to loaded scripts will not be reflected in the returned
+	 *         set.
 	 */
 	public static Set<Script> getLoadedScripts() {
 		return Collections.unmodifiableSet(new HashSet<>(loadedScripts));
 	}
 
 	/**
-	 * @return An unmodifiable set containing a snapshot of the currently disabled scripts.
-	 * Any changes to disabled scripts will not be reflected in the returned set.
+	 * @return An unmodifiable set containing a snapshot of the currently disabled
+	 *         scripts.
+	 *         Any changes to disabled scripts will not be reflected in the returned
+	 *         set.
 	 */
 	public static Set<File> getDisabledScripts() {
 		return Collections.unmodifiableSet(new HashSet<>(disabledScripts));
@@ -1191,12 +1264,16 @@ public class ScriptLoader {
 
 	/**
 	 * Used for listening to events involving a ScriptLoader.
+	 * 
 	 * @see #eventRegistry()
 	 */
-	public interface LoaderEvent extends org.skriptlang.skript.util.event.Event { }
+	public interface LoaderEvent extends org.skriptlang.skript.util.event.Event {
+	}
 
 	/**
-	 * Called when {@link ScriptLoader} is preparing to load {@link Config}s into {@link Script}s.
+	 * Called when {@link ScriptLoader} is preparing to load {@link Config}s into
+	 * {@link Script}s.
+	 * 
 	 * @see #loadScripts(File, OpenCloseable)
 	 * @see #loadScripts(Set, OpenCloseable)
 	 */
@@ -1206,6 +1283,7 @@ public class ScriptLoader {
 		/**
 		 * The method that is called when this event triggers.
 		 * Modifications to the given collection will affect what is loaded.
+		 * 
 		 * @param configs The Configs to be loaded.
 		 */
 		void onPreInit(Collection<Config> configs);
@@ -1213,8 +1291,11 @@ public class ScriptLoader {
 	}
 
 	/**
-	 * Called when a {@link Script} is created and preloaded in the {@link ScriptLoader}.
-	 * The initializing script may contain {@link Structure}s that are not fully loaded.
+	 * Called when a {@link Script} is created and preloaded in the
+	 * {@link ScriptLoader}.
+	 * The initializing script may contain {@link Structure}s that are not fully
+	 * loaded.
+	 * 
 	 * @see #loadScripts(File, OpenCloseable)
 	 * @see #loadScripts(Set, OpenCloseable)
 	 */
@@ -1223,6 +1304,7 @@ public class ScriptLoader {
 
 		/**
 		 * The method that is called when this event triggers.
+		 * 
 		 * @param script The Script being initialized.
 		 */
 		void onInit(Script script);
@@ -1231,7 +1313,9 @@ public class ScriptLoader {
 
 	/**
 	 * Called when a {@link Script} is loaded in the {@link ScriptLoader}.
-	 * This event will trigger <b>after</b> the script is completely loaded ({@link Structure} initialization finished).
+	 * This event will trigger <b>after</b> the script is completely loaded
+	 * ({@link Structure} initialization finished).
+	 * 
 	 * @see #loadScripts(File, OpenCloseable)
 	 * @see #loadScripts(Set, OpenCloseable)
 	 */
@@ -1240,6 +1324,7 @@ public class ScriptLoader {
 
 		/**
 		 * The method that is called when this event triggers.
+		 * 
 		 * @param parser The ParserInstance handling the loading of <code>script</code>.
 		 * @param script The Script being loaded.
 		 */
@@ -1250,6 +1335,7 @@ public class ScriptLoader {
 	/**
 	 * Called when a {@link Script} is unloaded in the {@link ScriptLoader}.
 	 * This event will trigger <b>before</b> the script is unloaded.
+	 * 
 	 * @see #unloadScript(Script)
 	 */
 	@FunctionalInterface
@@ -1257,7 +1343,9 @@ public class ScriptLoader {
 
 		/**
 		 * The method that is called when this event triggers.
-		 * @param parser The ParserInstance handling the unloading of <code>script</code>.
+		 * 
+		 * @param parser The ParserInstance handling the unloading of
+		 *               <code>script</code>.
 		 * @param script The Script being unloaded.
 		 */
 		void onUnload(ParserInstance parser, Script script);
@@ -1287,7 +1375,7 @@ public class ScriptLoader {
 	/**
 	 * Gets a script's file from its name and directory, if one exists.
 	 *
-	 * @param script The script name/path
+	 * @param script    The script name/path
 	 * @param directory The scripts (or testing scripts) directory
 	 * @return The script file, if one is found
 	 */
@@ -1307,19 +1395,23 @@ public class ScriptLoader {
 
 		File scriptFile = new File(directory, script);
 		if (!scriptFile.exists()) {
-			scriptFile = new File(scriptFile.getParentFile(), ScriptLoader.DISABLED_SCRIPT_PREFIX + scriptFile.getName());
+			scriptFile = new File(scriptFile.getParentFile(),
+					ScriptLoader.DISABLED_SCRIPT_PREFIX + scriptFile.getName());
 			if (!scriptFile.exists()) {
 				return null;
 			}
 		}
 		try {
-			// Unless it's a test, check if the user is asking for a script in the scripts folder
+			// Unless it's a test, check if the user is asking for a script in the scripts
+			// folder
 			// and not something outside Skript's domain.
-			if (TestMode.ENABLED || scriptFile.getCanonicalPath().startsWith(directory.getCanonicalPath() + File.separator))
+			if (TestMode.ENABLED
+					|| scriptFile.getCanonicalPath().startsWith(directory.getCanonicalPath() + File.separator))
 				return scriptFile.getCanonicalFile();
 			return null;
 		} catch (IOException e) {
-			throw Skript.exception(e, "An exception occurred while trying to get the script file from the string '" + script + "'");
+			throw Skript.exception(e,
+					"An exception occurred while trying to get the script file from the string '" + script + "'");
 		}
 	}
 

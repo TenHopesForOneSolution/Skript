@@ -49,6 +49,7 @@ import ch.njol.skript.util.EmptyStacktraceException;
 import ch.njol.skript.util.ExceptionUtils;
 import ch.njol.skript.util.FileUtils;
 import ch.njol.skript.util.Task;
+import ch.njol.skript.util.FoliaCompat;
 import ch.njol.skript.util.Utils;
 import ch.njol.skript.util.Version;
 import ch.njol.skript.util.chat.BungeeConverter;
@@ -159,17 +160,27 @@ import java.util.zip.ZipFile;
 // TODO meaningful error if someone uses an %expression with percent signs% outside of text or a variable
 
 /**
- * <b>Skript</b> - A Bukkit plugin to modify how Minecraft behaves without having to write a single line of code (You'll likely be writing some code though if you're reading this
+ * <b>Skript</b> - A Bukkit plugin to modify how Minecraft behaves without
+ * having to write a single line of code (You'll likely be writing some code
+ * though if you're reading this
  * =P)
  * <p>
- * Use this class to extend this plugin's functionality by adding more {@link Condition conditions}, {@link Effect effects}, {@link SimpleExpression expressions}, etc.
+ * Use this class to extend this plugin's functionality by adding more
+ * {@link Condition conditions}, {@link Effect effects}, {@link SimpleExpression
+ * expressions}, etc.
  * <p>
- * If your plugin.yml contains <tt>'depend: [Skript]'</tt> then your plugin will not start at all if Skript is not present. Add <tt>'softdepend: [Skript]'</tt> to your plugin.yml
- * if you want your plugin to work even if Skript isn't present, but want to make sure that Skript gets loaded before your plugin.
+ * If your plugin.yml contains <tt>'depend: [Skript]'</tt> then your plugin will
+ * not start at all if Skript is not present. Add
+ * <tt>'softdepend: [Skript]'</tt> to your plugin.yml
+ * if you want your plugin to work even if Skript isn't present, but want to
+ * make sure that Skript gets loaded before your plugin.
  * <p>
- * If you use 'softdepend' you can test whether Skript is loaded with <tt>'Bukkit.getPluginManager().getPlugin(&quot;Skript&quot;) != null'</tt>
+ * If you use 'softdepend' you can test whether Skript is loaded with
+ * <tt>'Bukkit.getPluginManager().getPlugin(&quot;Skript&quot;) != null'</tt>
  * <p>
- * Once you made sure that Skript is loaded you can use <code>Skript.getInstance()</code> whenever you need a reference to the plugin, but you likely won't need it since all API
+ * Once you made sure that Skript is loaded you can use
+ * <code>Skript.getInstance()</code> whenever you need a reference to the
+ * plugin, but you likely won't need it since all API
  * methods are static.
  *
  * @author Peter Güttinger
@@ -225,7 +236,8 @@ public final class Skript extends JavaPlugin implements Listener {
 	}
 
 	private static Version minecraftVersion = new Version(666), UNKNOWN_VERSION = new Version(666);
-	private static ServerPlatform serverPlatform = ServerPlatform.BUKKIT_UNKNOWN; // Start with unknown... onLoad changes this
+	private static ServerPlatform serverPlatform = ServerPlatform.BUKKIT_UNKNOWN; // Start with unknown... onLoad
+																					// changes this
 
 	/**
 	 * Check minecraft version and assign it to minecraftVersion field
@@ -253,18 +265,18 @@ public final class Skript extends JavaPlugin implements Listener {
 		return v;
 	}
 
-	public static final Message
-		m_invalid_reload = new Message("skript.invalid reload"),
-		m_finished_loading = new Message("skript.finished loading"),
-		m_no_errors = new Message("skript.no errors"),
-		m_no_scripts = new Message("skript.no scripts");
+	public static final Message m_invalid_reload = new Message("skript.invalid reload"),
+			m_finished_loading = new Message("skript.finished loading"),
+			m_no_errors = new Message("skript.no errors"),
+			m_no_scripts = new Message("skript.no scripts");
 	private static final PluralizingArgsMessage m_scripts_loaded = new PluralizingArgsMessage("skript.scripts loaded");
 
 	private static final Message WARNING_MESSAGE = new Message("skript.warning message");
 	private static final Message RESTART_MESSAGE = new Message("skript.restart message");
 
 	public static String getWarningMessage() {
-		return WARNING_MESSAGE.getValueOrDefault("It appears that /reload or another plugin reloaded Skript. This is not supported behaviour and may cause issues.");
+		return WARNING_MESSAGE.getValueOrDefault(
+				"It appears that /reload or another plugin reloaded Skript. This is not supported behaviour and may cause issues.");
 	}
 
 	public static String getRestartMessage() {
@@ -272,7 +284,9 @@ public final class Skript extends JavaPlugin implements Listener {
 	}
 
 	public static ServerPlatform getServerPlatform() {
-		if (classExists("net.glowstone.GlowServer")) {
+		if (classExists("io.papermc.paper.threadedregions.RegionizedServer")) {
+			return ServerPlatform.BUKKIT_FOLIA; // Folia must be checked before Paper since Folia includes Paper classes
+		} else if (classExists("net.glowstone.GlowServer")) {
 			return ServerPlatform.BUKKIT_GLOWSTONE; // Glowstone has timings too, so must check for it first
 		} else if (classExists("co.aikar.timings.Timings")) {
 			return ServerPlatform.BUKKIT_PAPER; // Could be Sponge, but it doesn't work at all at the moment
@@ -289,13 +303,16 @@ public final class Skript extends JavaPlugin implements Listener {
 	/**
 	 * Checks if server software and Minecraft version are supported.
 	 * Prints errors or warnings to console if something is wrong.
+	 * 
 	 * @return Whether Skript can continue loading at all.
 	 */
 	private static boolean checkServerPlatform() {
 		String bukkitV = Bukkit.getBukkitVersion();
 		Matcher m = Pattern.compile("\\d+\\.\\d+(\\.\\d+)?").matcher(bukkitV);
 		if (!m.find()) {
-			Skript.error("The Bukkit version '" + bukkitV + "' does not contain a version number which is required for Skript to enable or disable certain features. " +
+			Skript.error("The Bukkit version '" + bukkitV
+					+ "' does not contain a version number which is required for Skript to enable or disable certain features. "
+					+
 					"Skript will still work, but you might get random errors if you use features that are not available in your version of Bukkit.");
 			minecraftVersion = new Version(666, 0, 0);
 		} else {
@@ -306,7 +323,8 @@ public final class Skript extends JavaPlugin implements Listener {
 		// Check that MC version is supported
 		if (!isRunningMinecraft(1, 9)) {
 			// Prevent loading when not running at least Minecraft 1.9
-			Skript.error("This version of Skript does not work with Minecraft " + minecraftVersion + " and requires Minecraft 1.9.4+");
+			Skript.error("This version of Skript does not work with Minecraft " + minecraftVersion
+					+ " and requires Minecraft 1.9.4+");
 			Skript.error("You probably want Skript 2.2 or 2.1 (Google to find where to get them)");
 			Skript.error("Note that those versions are, of course, completely unsupported!");
 			return false;
@@ -341,6 +359,7 @@ public final class Skript extends JavaPlugin implements Listener {
 
 	/**
 	 * Checks whether a hook has been enabled.
+	 * 
 	 * @param hook The hook to check.
 	 * @return Whether the hook is enabled.
 	 * @see #disableHookRegistration(Class[])
@@ -351,15 +370,19 @@ public final class Skript extends JavaPlugin implements Listener {
 
 	/**
 	 * @return whether hooks have been loaded,
-	 * and if {@link #disableHookRegistration(Class[])} won't error because of this.
+	 *         and if {@link #disableHookRegistration(Class[])} won't error because
+	 *         of this.
 	 */
 	public static boolean isFinishedLoadingHooks() {
 		return finishedLoadingHooks;
 	}
 
 	/**
-	 * Disables the registration for the given hook classes. If Skript has been enabled, this method
-	 * will throw an API exception. It should be used in something like {@link JavaPlugin#onLoad()}.
+	 * Disables the registration for the given hook classes. If Skript has been
+	 * enabled, this method
+	 * will throw an API exception. It should be used in something like
+	 * {@link JavaPlugin#onLoad()}.
+	 * 
 	 * @param hooks The hooks to disable the registration of.
 	 * @see #isHookEnabled(Class)
 	 */
@@ -389,11 +412,10 @@ public final class Skript extends JavaPlugin implements Listener {
 	 */
 	public File getScriptsFolder() {
 		if (!scriptsFolder.isDirectory())
-			//noinspection ResultOfMethodCallIgnored
+			// noinspection ResultOfMethodCallIgnored
 			scriptsFolder.mkdirs();
 		return scriptsFolder;
 	}
-
 
 	// ================ RUNTIME ERRORS ================
 	public static RuntimeErrorManager getRuntimeErrorManager() {
@@ -430,7 +452,8 @@ public final class Skript extends JavaPlugin implements Listener {
 		File features = new File(getDataFolder(), "features.sk");
 		File lang = new File(getDataFolder(), "lang");
 		File aliasesFolder = new File(getDataFolder(), "aliases");
-		if (!scriptsFolder.isDirectory() || !config.exists() || !features.exists() || !lang.exists() || !aliasesFolder.exists()) {
+		if (!scriptsFolder.isDirectory() || !config.exists() || !features.exists() || !lang.exists()
+				|| !aliasesFolder.exists()) {
 			ZipFile f = null;
 			try {
 				boolean populateExamples = false;
@@ -471,10 +494,11 @@ public final class Skript extends JavaPlugin implements Listener {
 					} else if (e.getName().equals("config.sk")) {
 						if (!config.exists())
 							saveTo = config;
-//					} else if (e.getName().startsWith("aliases-") && e.getName().endsWith(".sk") && !e.getName().contains("/")) {
-//						File af = new File(getDataFolder(), e.getName());
-//						if (!af.exists())
-//							saveTo = af;
+						// } else if (e.getName().startsWith("aliases-") && e.getName().endsWith(".sk")
+						// && !e.getName().contains("/")) {
+						// File af = new File(getDataFolder(), e.getName());
+						// if (!af.exists())
+						// saveTo = af;
 					} else if (e.getName().startsWith("features.sk")) {
 						if (!features.exists())
 							saveTo = features;
@@ -490,13 +514,15 @@ public final class Skript extends JavaPlugin implements Listener {
 					}
 				}
 				info("Successfully generated the config and the example scripts.");
-			} catch (ZipException ignored) {} catch (IOException e) {
+			} catch (ZipException ignored) {
+			} catch (IOException e) {
 				error("Error generating the default files: " + ExceptionUtils.toString(e));
 			} finally {
 				if (f != null) {
 					try {
 						f.close();
-					} catch (IOException ignored) {}
+					} catch (IOException ignored) {
+					}
 				}
 			}
 		}
@@ -539,17 +565,20 @@ public final class Skript extends JavaPlugin implements Listener {
 			int pauseThreshold = getServer().getPauseWhenEmptyTime();
 			if (pauseThreshold > -1) {
 				Skript.warning("Minecraft server pausing is enabled!");
-				Skript.warning("Scripts that interact with the world or entities may not work as intended when the server is paused and may crash your server.");
-				Skript.warning("Consider setting 'pause-when-empty-seconds' to -1 in server.properties to make sure you don't encounter any issues.");
+				Skript.warning(
+						"Scripts that interact with the world or entities may not work as intended when the server is paused and may crash your server.");
+				Skript.warning(
+						"Consider setting 'pause-when-empty-seconds' to -1 in server.properties to make sure you don't encounter any issues.");
 			}
 		}
 
-
 		// Config must be loaded after Java and Skript classes are parseable
-		// ... but also before platform check, because there is a config option to ignore some errors
+		// ... but also before platform check, because there is a config option to
+		// ignore some errors
 		SkriptConfig.load();
 
-		// Register the runtime error refresh after loading, so we can do the first instantiation manually.
+		// Register the runtime error refresh after loading, so we can do the first
+		// instantiation manually.
 		SkriptConfig.eventRegistry().register(SkriptConfig.ReloadEvent.class, RuntimeErrorManager::refresh);
 
 		// init runtime error manager and add bukkit consumer.
@@ -580,7 +609,8 @@ public final class Skript extends JavaPlugin implements Listener {
 		skriptCommand.setExecutor(new SkriptCommand());
 		skriptCommand.setTabCompleter(new SkriptCommandTabCompleter());
 
-		// Load Bukkit stuff. It is done after platform check, because something might be missing!
+		// Load Bukkit stuff. It is done after platform check, because something might
+		// be missing!
 		new BukkitEventValues();
 
 		new DefaultComparators();
@@ -592,7 +622,7 @@ public final class Skript extends JavaPlugin implements Listener {
 
 		try {
 			getAddonInstance().loadClasses("ch.njol.skript",
-				"conditions", "effects", "events", "expressions", "entity", "literals", "sections", "structures");
+					"conditions", "effects", "events", "expressions", "entity", "literals", "sections", "structures");
 			getAddonInstance().loadClasses("org.skriptlang.skript.bukkit", "misc");
 			// todo: become proper module once registry api is merged
 			FishingModule.load();
@@ -603,14 +633,14 @@ public final class Skript extends JavaPlugin implements Listener {
 			FurnaceModule.load();
 			LootTableModule.load();
 			skript.loadModules(
-				new CommonModule(),
-				new BrewingModule(),
-				new EntityModule(),
-				new DamageSourceModule(),
-				new InteractionModule(),
-				new ItemComponentModule(),
-				new PotionModule(),
-				new ParticleModule());
+					new CommonModule(),
+					new BrewingModule(),
+					new EntityModule(),
+					new DamageSourceModule(),
+					new InteractionModule(),
+					new ItemComponentModule(),
+					new PotionModule(),
+					new ParticleModule());
 		} catch (final Exception e) {
 			exception(e, "Could not load required .class files: " + e.getLocalizedMessage());
 			setEnabled(false);
@@ -626,7 +656,7 @@ public final class Skript extends JavaPlugin implements Listener {
 			info(" " + Language.get("skript.copyright"));
 
 		final long tick = testing() ? Bukkit.getWorlds().get(0).getFullTime() : 0;
-		Bukkit.getScheduler().scheduleSyncDelayedTask(this, new Runnable() {
+		FoliaCompat.scheduleSyncDelayedTask(this, new Runnable() {
 			@SuppressWarnings("synthetic-access")
 			@Override
 			public void run() {
@@ -636,18 +666,22 @@ public final class Skript extends JavaPlugin implements Listener {
 				try {
 					try (JarFile jar = new JarFile(getFile())) {
 						for (JarEntry e : new EnumerationIterable<>(jar.entries())) {
-							if (e.getName().startsWith("ch/njol/skript/hooks/") && e.getName().endsWith("Hook.class") && StringUtils.count("" + e.getName(), '/') <= 5) {
-								final String c = e.getName().replace('/', '.').substring(0, e.getName().length() - ".class".length());
+							if (e.getName().startsWith("ch/njol/skript/hooks/") && e.getName().endsWith("Hook.class")
+									&& StringUtils.count("" + e.getName(), '/') <= 5) {
+								final String c = e.getName().replace('/', '.').substring(0,
+										e.getName().length() - ".class".length());
 								try {
 									Class<?> hook = Class.forName(c, true, getClassLoader());
-									if (Hook.class.isAssignableFrom(hook) && !Modifier.isAbstract(hook.getModifiers()) && isHookEnabled((Class<? extends Hook<?>>) hook)) {
+									if (Hook.class.isAssignableFrom(hook) && !Modifier.isAbstract(hook.getModifiers())
+											&& isHookEnabled((Class<? extends Hook<?>>) hook)) {
 										hook.getDeclaredConstructor().setAccessible(true);
 										hook.getDeclaredConstructor().newInstance();
 									}
 								} catch (ClassNotFoundException ex) {
 									Skript.exception(ex, "Cannot load class " + c);
 								} catch (ExceptionInInitializerError err) {
-									Skript.exception(err.getCause(), "Class " + c + " generated an exception while loading");
+									Skript.exception(err.getCause(),
+											"Class " + c + " generated an exception while loading");
 								} catch (Exception ex) {
 									Skript.exception(ex, "Exception initializing hook: " + c);
 								}
@@ -655,7 +689,8 @@ public final class Skript extends JavaPlugin implements Listener {
 						}
 					}
 				} catch (IOException e) {
-					error("Error while loading plugin hooks" + (e.getLocalizedMessage() == null ? "" : ": " + e.getLocalizedMessage()));
+					error("Error while loading plugin hooks"
+							+ (e.getLocalizedMessage() == null ? "" : ": " + e.getLocalizedMessage()));
 					Skript.exception(e);
 				}
 				finishedLoadingHooks = true;
@@ -734,13 +769,14 @@ public final class Skript extends JavaPlugin implements Listener {
 					if (TestMode.DEV_MODE) {
 						runTests(); // Dev mode doesn't need a delay
 					} else {
-						// delay + chunk loading necessary to allow world to fully generate and start ticking before tests run.
+						// delay + chunk loading necessary to allow world to fully generate and start
+						// ticking before tests run.
 						World world = Bukkit.getWorlds().get(0);
 						world.setSpawnLocation(0, 0, 0);
-						Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), () -> {
+						FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), () -> {
 							world.addPluginChunkTicket(0, 0, Skript.getInstance());
 							world.addPluginChunkTicket(100, 100, Skript.getInstance());
-							Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), () -> runTests(), 100);
+							FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), () -> runTests(), 100);
 						}, 5);
 					}
 				}
@@ -757,47 +793,47 @@ public final class Skript extends JavaPlugin implements Listener {
 				File scriptsFolder = getScriptsFolder();
 				ScriptLoader.updateDisabledScripts(scriptsFolder.toPath());
 				ScriptLoader.loadScripts(scriptsFolder, logHandler)
-					.thenAccept(scriptInfo -> {
-						try {
-							if (logHandler.getCount() == 0)
-								Skript.info(m_no_errors.toString());
-							if (scriptInfo.files == 0)
-								Skript.warning(m_no_scripts.toString());
-							if (Skript.logNormal() && scriptInfo.files > 0)
-								Skript.info(m_scripts_loaded.toString(
-									scriptInfo.files,
-									scriptInfo.structures,
-									start.difference(new Date())
-								));
+						.thenAccept(scriptInfo -> {
+							try {
+								if (logHandler.getCount() == 0)
+									Skript.info(m_no_errors.toString());
+								if (scriptInfo.files == 0)
+									Skript.warning(m_no_scripts.toString());
+								if (Skript.logNormal() && scriptInfo.files > 0)
+									Skript.info(m_scripts_loaded.toString(
+											scriptInfo.files,
+											scriptInfo.structures,
+											start.difference(new Date())));
 
-							Skript.info(m_finished_loading.toString());
+								Skript.info(m_finished_loading.toString());
 
-							// EvtSkript.onSkriptStart should be called on main server thread
-							if (!ScriptLoader.isAsync()) {
-								EvtSkript.onSkriptStart();
+								// EvtSkript.onSkriptStart should be called on main server thread
+								if (!ScriptLoader.isAsync()) {
+									EvtSkript.onSkriptStart();
 
-								// Suppresses the "can't keep up" warning after loading all scripts
-								// Only for non-asynchronous loading
-								Filter filter = record -> {
-									if (record == null)
-										return false;
-									return record.getMessage() == null
-										|| !record.getMessage().toLowerCase(Locale.ENGLISH).startsWith("can't keep up!");
-								};
-								BukkitLoggerFilter.addFilter(filter);
-								Bukkit.getScheduler().scheduleSyncDelayedTask(
-									Skript.this,
-									() -> BukkitLoggerFilter.removeFilter(filter),
-									1);
-							} else {
-								Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.this,
-									EvtSkript::onSkriptStart);
+									// Suppresses the "can't keep up" warning after loading all scripts
+									// Only for non-asynchronous loading
+									Filter filter = record -> {
+										if (record == null)
+											return false;
+										return record.getMessage() == null
+												|| !record.getMessage().toLowerCase(Locale.ENGLISH)
+														.startsWith("can't keep up!");
+									};
+									BukkitLoggerFilter.addFilter(filter);
+									FoliaCompat.scheduleSyncDelayedTask(
+											Skript.this,
+											() -> BukkitLoggerFilter.removeFilter(filter),
+											1);
+								} else {
+									FoliaCompat.scheduleSyncDelayedTask(Skript.this,
+											EvtSkript::onSkriptStart);
+								}
+							} catch (Exception e) {
+								// Something went wrong, we need to make sure the exception is printed
+								throw Skript.exception(e);
 							}
-						} catch (Exception e) {
-							// Something went wrong, we need to make sure the exception is printed
-							throw Skript.exception(e);
-						}
-					});
+						});
 
 			}
 		});
@@ -857,11 +893,11 @@ public final class Skript extends JavaPlugin implements Listener {
 
 					Skript.info(player, SkriptUpdater.m_update_available.toString(update.id, Skript.getVersion()));
 					player.spigot().sendMessage(BungeeConverter.convert(ChatMessages.parseToArray(
-						"Download it at: <aqua><u><link:" + update.downloadUrl + ">" + update.downloadUrl)));
+							"Download it at: <aqua><u><link:" + update.downloadUrl + ">" + update.downloadUrl)));
 				}
 			};
 		}
-  	}
+	}
 
 	private void runTests() {
 		info("Skript testing environment enabled, starting...");
@@ -906,25 +942,25 @@ public final class Skript extends JavaPlugin implements Listener {
 			}
 			if (TestMode.JUNIT) {
 				AtomicLong milliseconds = new AtomicLong(0),
-					tests = new AtomicLong(0), fails = new AtomicLong(0),
-					ignored = new AtomicLong(0), size = new AtomicLong(0);
+						tests = new AtomicLong(0), fails = new AtomicLong(0),
+						ignored = new AtomicLong(0), size = new AtomicLong(0);
 
 				info("Running sync JUnit tests...");
 				try {
 					// Search for all test classes
 					Set<Class<?>> classes = new HashSet<>();
 					ClassLoader.builder()
-						.addSubPackages("org.skriptlang.skript", "ch.njol.skript")
-						.filter(fqn -> fqn.endsWith("Test"))
-						.initialize(true)
-						.deep(true)
-						.forEachClass(clazz -> {
-							if (clazz.isAnonymousClass() || clazz.isLocalClass())
-								return;
-							classes.add(clazz);
-						})
-						.build()
-						.loadClasses(Skript.class, getFile());
+							.addSubPackages("org.skriptlang.skript", "ch.njol.skript")
+							.filter(fqn -> fqn.endsWith("Test"))
+							.initialize(true)
+							.deep(true)
+							.forEachClass(clazz -> {
+								if (clazz.isAnonymousClass() || clazz.isLocalClass())
+									return;
+								classes.add(clazz);
+							})
+							.build()
+							.loadClasses(Skript.class, getFile());
 					// remove some known non-tests that get picked up
 					classes.remove(SkriptJUnitTest.class);
 					classes.remove(SkriptAsyncJUnitTest.class);
@@ -938,12 +974,13 @@ public final class Skript extends JavaPlugin implements Listener {
 
 						runTest(clazz, shutdownDelay, tests, milliseconds, ignored, fails);
 					}
-				} catch (InstantiationException | IllegalAccessException | IllegalArgumentException |
-						 InvocationTargetException | NoSuchMethodException | SecurityException e) {
+				} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+						| InvocationTargetException | NoSuchMethodException | SecurityException e) {
 					Skript.exception(e, "Failed to initalize test JUnit classes.");
 				}
 				if (ignored.get() > 0)
-					Skript.warning("There were " + ignored + " ignored test cases! This can mean they are not properly setup in order in that class!");
+					Skript.warning("There were " + ignored
+							+ " ignored test cases! This can mean they are not properly setup in order in that class!");
 
 				onAsyncComplete = CompletableFuture.runAsync(() -> {
 					info("Running async JUnit tests...");
@@ -951,49 +988,52 @@ public final class Skript extends JavaPlugin implements Listener {
 						for (Class<?> clazz : asyncTests) {
 							runTest(clazz, shutdownDelay, tests, milliseconds, ignored, fails);
 						}
-					} catch (InstantiationException | IllegalAccessException | IllegalArgumentException |
-							 InvocationTargetException | NoSuchMethodException | SecurityException e) {
+					} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+							| InvocationTargetException | NoSuchMethodException | SecurityException e) {
 						Skript.exception(e, "Failed to initalize test JUnit classes.");
 					}
 					if (ignored.get() > 0)
 						Skript.warning("There were " + ignored + " ignored test cases! " +
-							"This can mean they are not properly setup in order in that class!");
+								"This can mean they are not properly setup in order in that class!");
 
 					info("Completed " + tests + " JUnit tests in " + size + " classes with " + fails +
-						" failures in " + milliseconds + " milliseconds.");
+							" failures in " + milliseconds + " milliseconds.");
 				});
 			}
 		}
 
 		onAsyncComplete.thenRun(() -> {
 			double display = shutdownDelay.get() / 20.0;
-			info("Testing done, shutting down the server in " + display + " second" + (display == 1 ? "" : "s") + "...");
+			info("Testing done, shutting down the server in " + display + " second" + (display == 1 ? "" : "s")
+					+ "...");
 
-			// Delay server shutdown to stop the server from crashing because the current tick takes a long time due to all the tests
-			Bukkit.getScheduler().runTaskLater(Skript.this, () -> {
+			// Delay server shutdown to stop the server from crashing because the current
+			// tick takes a long time due to all the tests
+			FoliaCompat.runTaskLater(Skript.this, () -> {
 				info("Shutting down server.");
 				if (TestMode.JUNIT && !EffObjectives.isJUnitComplete())
 					EffObjectives.fail();
 
 				info("Collecting results to " + TestMode.RESULTS_FILE);
 				String results = new GsonBuilder()
-					.setPrettyPrinting() // Easier to read lines
-					.disableHtmlEscaping() // Fixes issue with "'" character in test strings going unicode
-					.create().toJson(TestTracker.collectResults());
+						.setPrettyPrinting() // Easier to read lines
+						.disableHtmlEscaping() // Fixes issue with "'" character in test strings going unicode
+						.create().toJson(TestTracker.collectResults());
 				try {
 					Files.write(TestMode.RESULTS_FILE, results.getBytes(StandardCharsets.UTF_8));
 				} catch (IOException e) {
 					Skript.exception(e, "Failed to write test results.");
 				}
-				// delay by 1 tick to avoid the watchdog from thinking the shutdown tick took too long.
-				Bukkit.getScheduler().runTaskLater(Skript.this, () -> Bukkit.getServer().shutdown(), 1);
+				// delay by 1 tick to avoid the watchdog from thinking the shutdown tick took
+				// too long.
+				FoliaCompat.runTaskLater(Skript.this, () -> Bukkit.getServer().shutdown(), 1);
 			}, shutdownDelay.get());
 		});
 	}
 
 	private void runTest(Class<?> clazz, AtomicLong shutdownDelay, AtomicLong tests,
-						 AtomicLong milliseconds, AtomicLong ignored, AtomicLong fails)
-		throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+			AtomicLong milliseconds, AtomicLong ignored, AtomicLong fails)
+			throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
 		String test = clazz.getName();
 		SkriptJUnitTest.setCurrentJUnitTest(test);
 		SkriptJUnitTest.setShutdownDelay(0);
@@ -1003,21 +1043,25 @@ public final class Skript extends JavaPlugin implements Listener {
 		TestTracker.testStarted("JUnit: '" + test + "'");
 
 		/*
-		 * Usage of @After is pointless if the JUnit class requires delay. As the @After will happen instantly.
-		 * The JUnit must override the 'cleanup' method to avoid Skript automatically cleaning up the test data.
+		 * Usage of @After is pointless if the JUnit class requires delay. As the @After
+		 * will happen instantly.
+		 * The JUnit must override the 'cleanup' method to avoid Skript automatically
+		 * cleaning up the test data.
 		 */
 		boolean overrides = false;
 		for (Method method : clazz.getDeclaredMethods()) {
 			if (!method.isAnnotationPresent(After.class))
 				continue;
 			if (SkriptJUnitTest.getShutdownDelay() > 1)
-				warning("Methods annotated with @After in happen instantaneously, and '" + test + "' requires a delay. Do test cleanup in the junit script file or 'cleanup' method.");
+				warning("Methods annotated with @After in happen instantaneously, and '" + test
+						+ "' requires a delay. Do test cleanup in the junit script file or 'cleanup' method.");
 			if (method.getName().equals("cleanup"))
 				overrides = true;
 		}
 		if (SkriptJUnitTest.getShutdownDelay() > 1 && !overrides)
-			error("The JUnit class '" + test + "' does not override the method 'cleanup', thus the test data will instantly be cleaned up " +
-				"despite requiring a longer shutdown time: " + SkriptJUnitTest.getShutdownDelay());
+			error("The JUnit class '" + test
+					+ "' does not override the method 'cleanup', thus the test data will instantly be cleaned up " +
+					"despite requiring a longer shutdown time: " + SkriptJUnitTest.getShutdownDelay());
 
 		shutdownDelay.set(Math.max(shutdownDelay.get(), SkriptJUnitTest.getShutdownDelay()));
 		tests.getAndAdd(result.getRunCount());
@@ -1033,7 +1077,7 @@ public final class Skript extends JavaPlugin implements Listener {
 		}
 
 		if (SkriptJUnitTest.class.isAssignableFrom(clazz) &&
-			!SkriptAsyncJUnitTest.class.isAssignableFrom(clazz)) // can't access blocks, entities async
+				!SkriptAsyncJUnitTest.class.isAssignableFrom(clazz)) // can't access blocks, entities async
 			((SkriptJUnitTest) clazz.getConstructor().newInstance()).cleanup();
 		SkriptJUnitTest.clearJUnitTest();
 	}
@@ -1086,8 +1130,8 @@ public final class Skript extends JavaPlugin implements Listener {
 			// Use BurgerHelper to create some mappings, then dump them as JSON
 			try {
 				BurgerHelper burger = new BurgerHelper(burgerInput);
-				Map<String,Material> materials = burger.mapMaterials();
-				Map<Integer,Material> ids = BurgerHelper.mapIds();
+				Map<String, Material> materials = burger.mapMaterials();
+				Map<Integer, Material> ids = BurgerHelper.mapIds();
 
 				Gson gson = new Gson();
 				Files.write(folder.resolve("materials_mappings.json"), gson.toJson(materials)
@@ -1112,7 +1156,8 @@ public final class Skript extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * @return Whether this server is running Minecraft <tt>major.minor</tt> or higher
+	 * @return Whether this server is running Minecraft <tt>major.minor</tt> or
+	 *         higher
 	 */
 	public static boolean isRunningMinecraft(final int major, final int minor) {
 		if (minecraftVersion.compareTo(UNKNOWN_VERSION) == 0) { // Make sure minecraftVersion is properly assigned.
@@ -1138,7 +1183,8 @@ public final class Skript extends JavaPlugin implements Listener {
 	/**
 	 * Tests whether a given class exists in the classpath.
 	 *
-	 * @param className The {@link Class#getCanonicalName() canonical name} of the class
+	 * @param className The {@link Class#getCanonicalName() canonical name} of the
+	 *                  class
 	 * @return Whether the given class exists.
 	 */
 	public static boolean classExists(final String className) {
@@ -1153,8 +1199,8 @@ public final class Skript extends JavaPlugin implements Listener {
 	/**
 	 * Tests whether a method exists in the given class.
 	 *
-	 * @param c The class
-	 * @param methodName The name of the method
+	 * @param c              The class
+	 * @param methodName     The name of the method
 	 * @param parameterTypes The parameter types of the method
 	 * @return Whether the given method exists.
 	 */
@@ -1170,17 +1216,20 @@ public final class Skript extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * Tests whether a method exists in the given class, and whether the return type matches the expected one.
+	 * Tests whether a method exists in the given class, and whether the return type
+	 * matches the expected one.
 	 * <p>
-	 * Note that this method doesn't work properly if multiple methods with the same name and parameters exist but have different return types.
+	 * Note that this method doesn't work properly if multiple methods with the same
+	 * name and parameters exist but have different return types.
 	 *
-	 * @param c The class
-	 * @param methodName The name of the method
+	 * @param c              The class
+	 * @param methodName     The name of the method
 	 * @param parameterTypes The parameter types of the method
-	 * @param returnType The expected return type
+	 * @param returnType     The expected return type
 	 * @return Whether the given method exists.
 	 */
-	public static boolean methodExists(final Class<?> c, final String methodName, final Class<?>[] parameterTypes, final Class<?> returnType) {
+	public static boolean methodExists(final Class<?> c, final String methodName, final Class<?>[] parameterTypes,
+			final Class<?> returnType) {
 		try {
 			final Method m = c.getDeclaredMethod(methodName, parameterTypes);
 			return m.getReturnType() == returnType;
@@ -1194,7 +1243,7 @@ public final class Skript extends JavaPlugin implements Listener {
 	/**
 	 * Tests whether a field exists in the given class.
 	 *
-	 * @param c The class
+	 * @param c         The class
 	 * @param fieldName The name of the field
 	 * @return Whether the given field exists.
 	 */
@@ -1217,8 +1266,9 @@ public final class Skript extends JavaPlugin implements Listener {
 		return metrics;
 	}
 
-	@SuppressWarnings({"null", "removal"})
-	private final static Collection<Closeable> closeOnDisable = Collections.synchronizedCollection(new ArrayList<Closeable>());
+	@SuppressWarnings({ "null", "removal" })
+	private final static Collection<Closeable> closeOnDisable = Collections
+			.synchronizedCollection(new ArrayList<Closeable>());
 
 	/**
 	 * Registers a Closeable that should be closed when this plugin is disabled.
@@ -1272,7 +1322,8 @@ public final class Skript extends JavaPlugin implements Listener {
 			}
 
 			try {
-				// Spigot removed the mapping for this method in 1.18, so its back to obfuscated method
+				// Spigot removed the mapping for this method in 1.18, so its back to obfuscated
+				// method
 				// 1.19 mapping is u and 1.18 is v
 				String isRunningMethod = "isRunning";
 
@@ -1321,13 +1372,14 @@ public final class Skript extends JavaPlugin implements Listener {
 			beforeDisable();
 		}
 
-		Bukkit.getScheduler().cancelTasks(this);
+		FoliaCompat.cancelTasks(this);
 
 		for (Closeable c : closeOnDisable) {
 			try {
 				c.close();
 			} catch (final Exception e) {
-				Skript.exception(e, "An error occurred while shutting down.", "This might or might not cause any issues.");
+				Skript.exception(e, "An error occurred while shutting down.",
+						"This might or might not cause any issues.");
 			}
 		}
 
@@ -1339,7 +1391,8 @@ public final class Skript extends JavaPlugin implements Listener {
 	public final static String SCRIPTSFOLDER = "scripts";
 
 	public static void outdatedError() {
-		error("Skript v" + getInstance().getDescription().getVersion() + " is not fully compatible with Bukkit " + Bukkit.getVersion() + ". Some feature(s) will be broken until you update Skript.");
+		error("Skript v" + getInstance().getDescription().getVersion() + " is not fully compatible with Bukkit "
+				+ Bukkit.getVersion() + ". Some feature(s) will be broken until you update Skript.");
 	}
 
 	public static void outdatedError(final Exception e) {
@@ -1395,7 +1448,8 @@ public final class Skript extends JavaPlugin implements Listener {
 	};
 
 	/**
-	 * Creates a new Thread and sets its UncaughtExceptionHandler. The Thread is not started automatically.
+	 * Creates a new Thread and sets its UncaughtExceptionHandler. The Thread is not
+	 * started automatically.
 	 */
 	public static Thread newThread(final Runnable r, final String name) {
 		final Thread t = new Thread(r, name);
@@ -1431,12 +1485,16 @@ public final class Skript extends JavaPlugin implements Listener {
 	private static final Set<SkriptAddon> addons = new HashSet<>();
 
 	/**
-	 * Registers an addon to Skript. This is currently not required for addons to work, but the returned {@link SkriptAddon} provides useful methods for registering syntax elements
-	 * and adding new strings to Skript's localization system (e.g. the required "types.[type]" strings for registered classes).
+	 * Registers an addon to Skript. This is currently not required for addons to
+	 * work, but the returned {@link SkriptAddon} provides useful methods for
+	 * registering syntax elements
+	 * and adding new strings to Skript's localization system (e.g. the required
+	 * "types.[type]" strings for registered classes).
 	 *
 	 * @param plugin The plugin
-	 * @deprecated Use {@link org.skriptlang.skript.Skript#registerAddon(Class, String)}.
-	 * Obtain a Skript instance with {@link #instance()}.
+	 * @deprecated Use
+	 *             {@link org.skriptlang.skript.Skript#registerAddon(Class, String)}.
+	 *             Obtain a Skript instance with {@link #instance()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static SkriptAddon registerAddon(JavaPlugin plugin) {
@@ -1448,8 +1506,9 @@ public final class Skript extends JavaPlugin implements Listener {
 
 	/**
 	 * @deprecated There is no exact replacement for this method.
-	 * Consider using {@link #getAddon(String)} with the name of the plugin ({@link JavaPlugin#getName()}).
-	 * Obtain a Skript instance with {@link #instance()}.
+	 *             Consider using {@link #getAddon(String)} with the name of the
+	 *             plugin ({@link JavaPlugin#getName()}).
+	 *             Obtain a Skript instance with {@link #instance()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static @Nullable SkriptAddon getAddon(JavaPlugin plugin) {
@@ -1466,7 +1525,7 @@ public final class Skript extends JavaPlugin implements Listener {
 
 	/**
 	 * @deprecated Use {@link org.skriptlang.skript.Skript#addon(String)}.
-	 * Obtain a Skript instance with {@link #instance()}.
+	 *             Obtain a Skript instance with {@link #instance()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static @Nullable SkriptAddon getAddon(String name) {
@@ -1483,16 +1542,15 @@ public final class Skript extends JavaPlugin implements Listener {
 
 	/**
 	 * @deprecated Use {@link org.skriptlang.skript.Skript#addons()}.
-	 * Obtain a Skript instance with {@link #instance()}.
+	 *             Obtain a Skript instance with {@link #instance()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static @Unmodifiable Collection<SkriptAddon> getAddons() {
 		Set<SkriptAddon> addons = new HashSet<>(Skript.addons);
 		addons.addAll(instance().addons().stream()
-			.filter(addon -> addons.stream().noneMatch(oldAddon -> oldAddon.name().equals(addon.name())))
-			.map(SkriptAddon::fromModern)
-			.collect(Collectors.toSet())
-		);
+				.filter(addon -> addons.stream().noneMatch(oldAddon -> oldAddon.name().equals(addon.name())))
+				.map(SkriptAddon::fromModern)
+				.collect(Collectors.toSet()));
 		return Collections.unmodifiableCollection(addons);
 	}
 
@@ -1515,6 +1573,7 @@ public final class Skript extends JavaPlugin implements Listener {
 
 	/**
 	 * Attempts to create a SyntaxOrigin from a provided class.
+	 * 
 	 * @deprecated This method exists solely for compatibility reasons.
 	 */
 	@ApiStatus.Internal
@@ -1537,13 +1596,17 @@ public final class Skript extends JavaPlugin implements Listener {
 	 * Registers a {@link Condition}.
 	 *
 	 * @param conditionClass The condition's class
-	 * @param patterns Skript patterns to match this condition
-	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with {@link SyntaxRegistry#CONDITION}.
-	 * Create a {@link SyntaxInfo} with {@link SyntaxInfo#builder(Class)}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @param patterns       Skript patterns to match this condition
+	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with
+	 *             {@link SyntaxRegistry#CONDITION}.
+	 *             Create a {@link SyntaxInfo} with
+	 *             {@link SyntaxInfo#builder(Class)}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
-	public static <E extends Condition> void registerCondition(Class<E> conditionClass, String... patterns) throws IllegalArgumentException {
+	public static <E extends Condition> void registerCondition(Class<E> conditionClass, String... patterns)
+			throws IllegalArgumentException {
 		registerCondition(conditionClass, ConditionType.COMBINED, patterns);
 	}
 
@@ -1551,66 +1614,80 @@ public final class Skript extends JavaPlugin implements Listener {
 	 * Registers a {@link Condition}.
 	 *
 	 * @param conditionClass The condition's class
-	 * @param type The type of condition which affects its priority in the parsing search
-	 * @param patterns Skript patterns to match this condition
-	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with {@link SyntaxRegistry#CONDITION}.
-	 * Create a {@link SyntaxInfo} with {@link SyntaxInfo#builder(Class)}.
-	 * Specify a custom priority ({@link SyntaxInfo.Builder#priority(Priority)}) to replace {@code type}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @param type           The type of condition which affects its priority in the
+	 *                       parsing search
+	 * @param patterns       Skript patterns to match this condition
+	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with
+	 *             {@link SyntaxRegistry#CONDITION}.
+	 *             Create a {@link SyntaxInfo} with
+	 *             {@link SyntaxInfo#builder(Class)}.
+	 *             Specify a custom priority
+	 *             ({@link SyntaxInfo.Builder#priority(Priority)}) to replace
+	 *             {@code type}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
-	public static <E extends Condition> void registerCondition(Class<E> conditionClass, ConditionType type, String... patterns) throws IllegalArgumentException {
+	public static <E extends Condition> void registerCondition(Class<E> conditionClass, ConditionType type,
+			String... patterns) throws IllegalArgumentException {
 		checkAcceptRegistrations();
 		skript.syntaxRegistry().register(SyntaxRegistry.CONDITION, SyntaxInfo.builder(conditionClass)
 				.priority(type.priority())
 				.origin(getSyntaxOrigin(conditionClass))
 				.addPatterns(patterns)
-				.build()
-		);
+				.build());
 	}
 
 	/**
 	 * Registers an {@link Effect}.
 	 *
 	 * @param effectClass The effect's class
-	 * @param patterns Skript patterns to match this effect
-	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with {@link SyntaxRegistry#EFFECT}.
-	 * Create a {@link SyntaxInfo} with {@link SyntaxInfo#builder(Class)}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @param patterns    Skript patterns to match this effect
+	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with
+	 *             {@link SyntaxRegistry#EFFECT}.
+	 *             Create a {@link SyntaxInfo} with
+	 *             {@link SyntaxInfo#builder(Class)}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
-	public static <E extends Effect> void registerEffect(Class<E> effectClass, String... patterns) throws IllegalArgumentException {
+	public static <E extends Effect> void registerEffect(Class<E> effectClass, String... patterns)
+			throws IllegalArgumentException {
 		checkAcceptRegistrations();
 		skript.syntaxRegistry().register(SyntaxRegistry.EFFECT, SyntaxInfo.builder(effectClass)
 				.origin(getSyntaxOrigin(effectClass))
 				.addPatterns(patterns)
-				.build()
-		);
+				.build());
 	}
 
 	/**
 	 * Registers a {@link Section}.
 	 *
 	 * @param sectionClass The section's class
-	 * @param patterns Skript patterns to match this section
+	 * @param patterns     Skript patterns to match this section
 	 * @see Section
-	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with {@link SyntaxRegistry#SECTION}.
-	 * Create a {@link SyntaxInfo} with {@link SyntaxInfo#builder(Class)}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with
+	 *             {@link SyntaxRegistry#SECTION}.
+	 *             Create a {@link SyntaxInfo} with
+	 *             {@link SyntaxInfo#builder(Class)}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
-	public static <E extends Section> void registerSection(Class<E> sectionClass, String... patterns) throws IllegalArgumentException {
+	public static <E extends Section> void registerSection(Class<E> sectionClass, String... patterns)
+			throws IllegalArgumentException {
 		checkAcceptRegistrations();
 		skript.syntaxRegistry().register(SyntaxRegistry.SECTION, SyntaxInfo.builder(sectionClass)
 				.origin(getSyntaxOrigin(sectionClass))
 				.addPatterns(patterns)
-				.build()
-		);
+				.build());
 	}
 
 	/**
-	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with {@link SyntaxRegistry#STATEMENT}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with
+	 *             {@link SyntaxRegistry#STATEMENT}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static @Unmodifiable Collection<SyntaxElementInfo<? extends Statement>> getStatements() {
@@ -1621,8 +1698,10 @@ public final class Skript extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with {@link SyntaxRegistry#CONDITION}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with
+	 *             {@link SyntaxRegistry#CONDITION}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static @Unmodifiable Collection<SyntaxElementInfo<? extends Condition>> getConditions() {
@@ -1633,8 +1712,10 @@ public final class Skript extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with {@link SyntaxRegistry#EFFECT}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with
+	 *             {@link SyntaxRegistry#EFFECT}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static @Unmodifiable Collection<SyntaxElementInfo<? extends Effect>> getEffects() {
@@ -1645,8 +1726,10 @@ public final class Skript extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with {@link SyntaxRegistry#SECTION}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with
+	 *             {@link SyntaxRegistry#SECTION}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static @Unmodifiable Collection<SyntaxElementInfo<? extends Section>> getSections() {
@@ -1662,31 +1745,41 @@ public final class Skript extends JavaPlugin implements Listener {
 	 * Registers an expression.
 	 *
 	 * @param expressionClass The expression's class
-	 * @param returnType The superclass of all values returned by the expression
-	 * @param type The expression's {@link ExpressionType type}. This is used to determine in which order to try to parse expressions.
-	 * @param patterns Skript patterns that match this expression
+	 * @param returnType      The superclass of all values returned by the
+	 *                        expression
+	 * @param type            The expression's {@link ExpressionType type}. This is
+	 *                        used to determine in which order to try to parse
+	 *                        expressions.
+	 * @param patterns        Skript patterns that match this expression
 	 * @throws IllegalArgumentException if returnType is not a normal class
-	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with {@link SyntaxRegistry#EXPRESSION}.
-	 * Create a {@link SyntaxInfo.Expression} with {@link SyntaxInfo.Expression#builder(Class, Class)}.
-	 * Specify a custom priority ({@link SyntaxInfo.Builder#priority(Priority)}) to replace {@code type}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with
+	 *             {@link SyntaxRegistry#EXPRESSION}.
+	 *             Create a {@link SyntaxInfo.Expression} with
+	 *             {@link SyntaxInfo.Expression#builder(Class, Class)}.
+	 *             Specify a custom priority
+	 *             ({@link SyntaxInfo.Builder#priority(Priority)}) to replace
+	 *             {@code type}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static <E extends Expression<T>, T> void registerExpression(
-		Class<E> expressionClass, Class<T> returnType, ExpressionType type, String... patterns
-	) throws IllegalArgumentException {
+			Class<E> expressionClass, Class<T> returnType, ExpressionType type, String... patterns)
+			throws IllegalArgumentException {
 		checkAcceptRegistrations();
-		skript.syntaxRegistry().register(SyntaxRegistry.EXPRESSION, SyntaxInfo.Expression.builder(expressionClass, returnType)
-				.priority(type.priority())
-				.origin(getSyntaxOrigin(expressionClass))
-				.addPatterns(patterns)
-				.build()
-		);
+		skript.syntaxRegistry().register(SyntaxRegistry.EXPRESSION,
+				SyntaxInfo.Expression.builder(expressionClass, returnType)
+						.priority(type.priority())
+						.origin(getSyntaxOrigin(expressionClass))
+						.addPatterns(patterns)
+						.build());
 	}
 
 	/**
-	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with {@link SyntaxRegistry#EXPRESSION}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with
+	 *             {@link SyntaxRegistry#EXPRESSION}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static Iterator<ExpressionInfo<?, ?>> getExpressions() {
@@ -1698,8 +1791,10 @@ public final class Skript extends JavaPlugin implements Listener {
 
 	/**
 	 * @deprecated There is no exact replacement for this method.
-	 * Use {@link SyntaxRegistry#syntaxes(Key)} with {@link SyntaxRegistry#SECTION} and filter the results.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 *             Use {@link SyntaxRegistry#syntaxes(Key)} with
+	 *             {@link SyntaxRegistry#SECTION} and filter the results.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static Iterator<ExpressionInfo<?, ?>> getExpressions(Class<?>... returnTypes) {
@@ -1720,39 +1815,49 @@ public final class Skript extends JavaPlugin implements Listener {
 	/**
 	 * Registers an event.
 	 *
-	 * @param name Capitalised name of the event without leading "On" which is added automatically (Start the name with an asterisk to prevent this). Used for error messages and
-	 *            the documentation.
-	 * @param c The event's class
-	 * @param event The Bukkit event this event applies to
+	 * @param name     Capitalised name of the event without leading "On" which is
+	 *                 added automatically (Start the name with an asterisk to
+	 *                 prevent this). Used for error messages and
+	 *                 the documentation.
+	 * @param c        The event's class
+	 * @param event    The Bukkit event this event applies to
 	 * @param patterns Skript patterns to match this event
-	 * @return A SkriptEventInfo representing the registered event. Used to generate Skript's documentation.
-	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with {@link BukkitSyntaxInfos.Event#KEY}.
-	 * Create a {@link BukkitSyntaxInfos.Event} with {@link BukkitSyntaxInfos.Event#builder(Class, String)}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @return A SkriptEventInfo representing the registered event. Used to generate
+	 *         Skript's documentation.
+	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with
+	 *             {@link BukkitSyntaxInfos.Event#KEY}.
+	 *             Create a {@link BukkitSyntaxInfos.Event} with
+	 *             {@link BukkitSyntaxInfos.Event#builder(Class, String)}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@SuppressWarnings("unchecked")
 	@Deprecated(since = "2.14", forRemoval = true)
-	public static <E extends SkriptEvent> SkriptEventInfo<E> registerEvent(String name, Class<E> c, Class<? extends Event> event, String... patterns) {
-		return registerEvent(name, c, new Class[] {event}, patterns);
+	public static <E extends SkriptEvent> SkriptEventInfo<E> registerEvent(String name, Class<E> c,
+			Class<? extends Event> event, String... patterns) {
+		return registerEvent(name, c, new Class[] { event }, patterns);
 	}
 
 	/**
 	 * Registers an event.
 	 *
-	 * @param name The name of the event, used for error messages
+	 * @param name       The name of the event, used for error messages
 	 * @param eventClass The event's class
-	 * @param events The Bukkit events this event applies to
-	 * @param patterns Skript patterns to match this event
-	 * @return A SkriptEventInfo representing the registered event. Used to generate Skript's documentation.
-	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with {@link BukkitSyntaxInfos.Event#KEY}.
-	 * Create a {@link BukkitSyntaxInfos.Event} with {@link BukkitSyntaxInfos.Event#builder(Class, String)}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @param events     The Bukkit events this event applies to
+	 * @param patterns   Skript patterns to match this event
+	 * @return A SkriptEventInfo representing the registered event. Used to generate
+	 *         Skript's documentation.
+	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with
+	 *             {@link BukkitSyntaxInfos.Event#KEY}.
+	 *             Create a {@link BukkitSyntaxInfos.Event} with
+	 *             {@link BukkitSyntaxInfos.Event#builder(Class, String)}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@SuppressWarnings("ConstantConditions") // caused by bad array annotations
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static <E extends SkriptEvent> SkriptEventInfo<E> registerEvent(
-		String name, Class<E> eventClass, Class<? extends Event>[] events, String... patterns
-	) {
+			String name, Class<E> eventClass, Class<? extends Event>[] events, String... patterns) {
 		checkAcceptRegistrations();
 		for (int i = 0; i < patterns.length; i++)
 			patterns[i] = BukkitSyntaxInfos.fixPattern(patterns[i]);
@@ -1762,9 +1867,12 @@ public final class Skript extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with {@link SyntaxRegistry#STRUCTURE}.
-	 * Create a {@link SyntaxInfo.Structure} with {@link SyntaxInfo.Structure#builder(Class)}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with
+	 *             {@link SyntaxRegistry#STRUCTURE}.
+	 *             Create a {@link SyntaxInfo.Structure} with
+	 *             {@link SyntaxInfo.Structure#builder(Class)}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static <E extends Structure> void registerStructure(Class<E> structureClass, String... patterns) {
@@ -1772,14 +1880,16 @@ public final class Skript extends JavaPlugin implements Listener {
 		skript.syntaxRegistry().register(SyntaxRegistry.STRUCTURE, SyntaxInfo.Structure.builder(structureClass)
 				.origin(getSyntaxOrigin(structureClass))
 				.addPatterns(patterns)
-				.build()
-		);
+				.build());
 	}
 
 	/**
-	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with {@link SyntaxRegistry#STRUCTURE}.
-	 * Create a {@link SyntaxInfo.Structure} with {@link SyntaxInfo.Structure#builder(Class)}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with
+	 *             {@link SyntaxRegistry#STRUCTURE}.
+	 *             Create a {@link SyntaxInfo.Structure} with
+	 *             {@link SyntaxInfo.Structure#builder(Class)}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static <E extends Structure> void registerSimpleStructure(Class<E> structureClass, String... patterns) {
@@ -1788,44 +1898,49 @@ public final class Skript extends JavaPlugin implements Listener {
 				.origin(getSyntaxOrigin(structureClass))
 				.addPatterns(patterns)
 				.nodeType(SyntaxInfo.Structure.NodeType.SIMPLE)
-				.build()
-		);
+				.build());
 	}
 
 	/**
-	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with {@link SyntaxRegistry#STRUCTURE}.
-	 * Create a {@link SyntaxInfo.Structure} with {@link SyntaxInfo.Structure#builder(Class)}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with
+	 *             {@link SyntaxRegistry#STRUCTURE}.
+	 *             Create a {@link SyntaxInfo.Structure} with
+	 *             {@link SyntaxInfo.Structure#builder(Class)}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static <E extends Structure> void registerStructure(
-		Class<E> structureClass, EntryValidator entryValidator, String... patterns
-	) {
+			Class<E> structureClass, EntryValidator entryValidator, String... patterns) {
 		registerStructure(structureClass, entryValidator, DefaultSyntaxInfos.Structure.NodeType.SECTION, patterns);
 	}
 
 	/**
-	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with {@link SyntaxRegistry#STRUCTURE}.
-	 * Create a {@link SyntaxInfo.Structure} with {@link SyntaxInfo.Structure#builder(Class)}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @deprecated Use {@link SyntaxRegistry#register(Key, SyntaxInfo)} with
+	 *             {@link SyntaxRegistry#STRUCTURE}.
+	 *             Create a {@link SyntaxInfo.Structure} with
+	 *             {@link SyntaxInfo.Structure#builder(Class)}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static <E extends Structure> void registerStructure(
-		Class<E> structureClass, EntryValidator entryValidator, DefaultSyntaxInfos.Structure.NodeType nodeType, String... patterns
-	) {
+			Class<E> structureClass, EntryValidator entryValidator, DefaultSyntaxInfos.Structure.NodeType nodeType,
+			String... patterns) {
 		checkAcceptRegistrations();
 		skript.syntaxRegistry().register(SyntaxRegistry.STRUCTURE, SyntaxInfo.Structure.builder(structureClass)
 				.origin(getSyntaxOrigin(structureClass))
 				.addPatterns(patterns)
 				.entryValidator(entryValidator)
 				.nodeType(nodeType)
-				.build()
-		);
+				.build());
 	}
 
 	/**
-	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with {@link BukkitSyntaxInfos.Event#KEY}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with
+	 *             {@link BukkitSyntaxInfos.Event#KEY}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static @Unmodifiable Collection<SkriptEventInfo<?>> getEvents() {
@@ -1836,8 +1951,10 @@ public final class Skript extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with {@link SyntaxRegistry#STRUCTURE}.
-	 * Obtain a {@link SyntaxRegistry} through {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
+	 * @deprecated Use {@link SyntaxRegistry#syntaxes(Key)} with
+	 *             {@link SyntaxRegistry#STRUCTURE}.
+	 *             Obtain a {@link SyntaxRegistry} through
+	 *             {@link org.skriptlang.skript.addon.SkriptAddon#syntaxRegistry()}.
 	 */
 	@Deprecated(since = "2.14", forRemoval = true)
 	public static @Unmodifiable List<StructureInfo<? extends Structure>> getStructures() {
@@ -1910,7 +2027,8 @@ public final class Skript extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * Sends a debug message with formatted objects if {@link #debug()} returns true.
+	 * Sends a debug message with formatted objects if {@link #debug()} returns
+	 * true.
 	 *
 	 * @param message The message to send
 	 * @param objects The objects to format the message with
@@ -1959,7 +2077,9 @@ public final class Skript extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * Use this in {@link Expression#init(Expression[], int, Kleenean, ch.njol.skript.lang.SkriptParser.ParseResult)} (and other methods that are called during the parsing) to log
+	 * Use this in
+	 * {@link Expression#init(Expression[], int, Kleenean, ch.njol.skript.lang.SkriptParser.ParseResult)}
+	 * (and other methods that are called during the parsing) to log
 	 * errors with a specific {@link ErrorQuality}.
 	 *
 	 * @param error
@@ -1975,7 +2095,8 @@ public final class Skript extends JavaPlugin implements Listener {
 	 * Used if something happens that shouldn't happen
 	 *
 	 * @param info Description of the error and additional information
-	 * @return an EmptyStacktraceException to throw if code execution should terminate.
+	 * @return an EmptyStacktraceException to throw if code execution should
+	 *         terminate.
 	 */
 	public static EmptyStacktraceException exception(final String... info) {
 		return exception(null, info);
@@ -1985,11 +2106,13 @@ public final class Skript extends JavaPlugin implements Listener {
 		return exception(cause, null, null, info);
 	}
 
-	public static EmptyStacktraceException exception(final @Nullable Throwable cause, final @Nullable Thread thread, final String... info) {
+	public static EmptyStacktraceException exception(final @Nullable Throwable cause, final @Nullable Thread thread,
+			final String... info) {
 		return exception(cause, thread, null, info);
 	}
 
-	public static EmptyStacktraceException exception(final @Nullable Throwable cause, final @Nullable TriggerItem item, final String... info) {
+	public static EmptyStacktraceException exception(final @Nullable Throwable cause, final @Nullable TriggerItem item,
+			final String... info) {
 		return exception(cause, null, item, info);
 	}
 
@@ -2022,10 +2145,12 @@ public final class Skript extends JavaPlugin implements Listener {
 	 * Used if something happens that shouldn't happen
 	 *
 	 * @param cause exception that shouldn't occur
-	 * @param info Description of the error and additional information
-	 * @return an EmptyStacktraceException to throw if code execution should terminate.
+	 * @param info  Description of the error and additional information
+	 * @return an EmptyStacktraceException to throw if code execution should
+	 *         terminate.
 	 */
-	public static EmptyStacktraceException exception(@Nullable Throwable cause, @Nullable Thread thread, @Nullable TriggerItem item, String... info) {
+	public static EmptyStacktraceException exception(@Nullable Throwable cause, @Nullable Thread thread,
+			@Nullable TriggerItem item, String... info) {
 		errored = true;
 
 		// Avoid re-throwing the same exception
@@ -2064,9 +2189,11 @@ public final class Skript extends JavaPlugin implements Listener {
 		return (lastDotIndex == -1) ? "" : qualifiedClassName.substring(0, lastDotIndex);
 	}
 
-	private static void logErrorDetails(@Nullable Throwable cause, String[] info, @Nullable Thread thread, @Nullable TriggerItem item) {
+	private static void logErrorDetails(@Nullable Throwable cause, String[] info, @Nullable Thread thread,
+			@Nullable TriggerItem item) {
 		String issuesUrl = "https://github.com/SkriptLang/Skript/issues";
-		String downloadUrl = "https://github.com/SkriptLang/Skript/releases/latest"; //TODO grab this from the update checker
+		String downloadUrl = "https://github.com/SkriptLang/Skript/releases/latest"; // TODO grab this from the update
+																						// checker
 
 		logEx();
 		logEx("[Skript] Severe Error:");
@@ -2093,14 +2220,14 @@ public final class Skript extends JavaPlugin implements Listener {
 		Set<PluginDescriptionFile> stackPlugins = new HashSet<>();
 		for (StackTraceElement element : stackTrace) {
 			pluginPackages.entrySet().stream()
-				.filter(entry -> element.getClassName().startsWith(entry.getKey()))
-				.forEach(entry -> stackPlugins.add(entry.getValue()));
+					.filter(entry -> element.getClassName().startsWith(entry.getKey()))
+					.forEach(entry -> stackPlugins.add(entry.getValue()));
 		}
 		return stackPlugins;
 	}
 
-
-	private static void logPlatformSupportInfo(String issuesUrl, String downloadUrl, Set<PluginDescriptionFile> stackPlugins) {
+	private static void logPlatformSupportInfo(String issuesUrl, String downloadUrl,
+			Set<PluginDescriptionFile> stackPlugins) {
 		SkriptUpdater updater = Skript.getInstance().getUpdater();
 
 		if (tainted) {
@@ -2110,7 +2237,8 @@ public final class Skript extends JavaPlugin implements Listener {
 			logEx("Please report this bug to: " + issuesUrl);
 		} else if (!serverPlatform.supported) {
 			String supportedPlatforms = getSupportedPlatforms();
-			logEx("Your server platform appears to be unsupported by Skript. Consider switching to one of the supported platforms (" + supportedPlatforms + ") for better compatibility.");
+			logEx("Your server platform appears to be unsupported by Skript. Consider switching to one of the supported platforms ("
+					+ supportedPlatforms + ") for better compatibility.");
 		} else if (updater != null && updater.getReleaseStatus() == ReleaseStatus.OUTDATED) {
 			logEx("You're running an outdated version of Skript! Update to the latest version here: " + downloadUrl);
 		} else {
@@ -2121,9 +2249,9 @@ public final class Skript extends JavaPlugin implements Listener {
 
 	private static String getSupportedPlatforms() {
 		return Arrays.stream(ServerPlatform.values())
-			.filter(platform -> platform.supported)
-			.map(ServerPlatform::name)
-			.collect(Collectors.joining(", "));
+				.filter(platform -> platform.supported)
+				.map(ServerPlatform::name)
+				.collect(Collectors.joining(", "));
 	}
 
 	private static void logExAddonInfo(String issuesUrl, Set<PluginDescriptionFile> stackPlugins) {
@@ -2176,8 +2304,10 @@ public final class Skript extends JavaPlugin implements Listener {
 		}
 		logEx("Bukkit: " + Bukkit.getBukkitVersion());
 		logEx("Minecraft: " + getMinecraftVersion());
-		logEx("Java: " + System.getProperty("java.version") + " (" + System.getProperty("java.vm.name") + " " + System.getProperty("java.vm.version") + ")");
-		logEx("OS: " + System.getProperty("os.name") + " " + System.getProperty("os.arch") + " " + System.getProperty("os.version"));
+		logEx("Java: " + System.getProperty("java.version") + " (" + System.getProperty("java.vm.name") + " "
+				+ System.getProperty("java.vm.version") + ")");
+		logEx("OS: " + System.getProperty("os.name") + " " + System.getProperty("os.arch") + " "
+				+ System.getProperty("os.version"));
 		logEx();
 		logEx("Server platform: " + serverPlatform.name + (serverPlatform.supported ? "" : " (unsupported)"));
 	}
@@ -2188,7 +2318,9 @@ public final class Skript extends JavaPlugin implements Listener {
 		if (item != null && item.getTrigger() != null) {
 			Trigger trigger = item.getTrigger();
 			Script script = trigger.getScript();
-			logEx("Current trigger: " + trigger.toString(null, true) + " (" + (script == null ? "null" : script.getConfig().getFileName()) + ", line " + trigger.getLineNumber() + ")");
+			logEx("Current trigger: " + trigger.toString(null, true) + " ("
+					+ (script == null ? "null" : script.getConfig().getFileName()) + ", line " + trigger.getLineNumber()
+					+ ")");
 		}
 		logEx("Thread: " + (thread == null ? Thread.currentThread() : thread).getName());
 		logEx("Language: " + Language.getName());
@@ -2228,7 +2360,8 @@ public final class Skript extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * Similar to {@link #info(CommandSender, String)} but no [Skript] prefix is added.
+	 * Similar to {@link #info(CommandSender, String)} but no [Skript] prefix is
+	 * added.
 	 *
 	 * @param sender
 	 * @param info
@@ -2243,6 +2376,7 @@ public final class Skript extends JavaPlugin implements Listener {
 
 	/**
 	 * Gets the updater instance currently used by Skript.
+	 * 
 	 * @return SkriptUpdater instance.
 	 */
 	@Nullable

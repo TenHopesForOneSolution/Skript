@@ -2,6 +2,7 @@ package ch.njol.skript.variables;
 
 import ch.njol.skript.Skript;
 import ch.njol.skript.SkriptAPIException;
+import ch.njol.skript.util.FoliaCompat;
 import ch.njol.skript.SkriptConfig;
 import ch.njol.skript.classes.ClassInfo;
 import ch.njol.skript.classes.ConfigurationSerializer;
@@ -21,7 +22,6 @@ import ch.njol.util.coll.iterator.EmptyIterator;
 import ch.njol.yggdrasil.Yggdrasil;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.event.Event;
@@ -93,10 +93,11 @@ public class Variables {
 		// Register ConfigurationSerializable, Bukkit's serialization system
 		yggdrasil.registerClassResolver(new ConfigurationSerializer<ConfigurationSerializable>() {
 			{
-				//noinspection unchecked
-				info = (ClassInfo<? extends ConfigurationSerializable>) (ClassInfo<?>) Classes.getExactClassInfo(Object.class);
+				// noinspection unchecked
+				info = (ClassInfo<? extends ConfigurationSerializable>) (ClassInfo<?>) Classes
+						.getExactClassInfo(Object.class);
 				// Info field is mostly unused in superclass, due to methods overridden below,
-				//  so this illegal cast is fine
+				// so this illegal cast is fine
 			}
 
 			@Override
@@ -135,11 +136,13 @@ public class Variables {
 	}
 
 	/**
-	 * Register a VariableStorage class for Skript to create if the user config value matches.
+	 * Register a VariableStorage class for Skript to create if the user config
+	 * value matches.
 	 *
-	 * @param <T> A class to extend VariableStorage.
+	 * @param <T>     A class to extend VariableStorage.
 	 * @param storage The class of the VariableStorage implementation.
-	 * @param names The names used in the config of Skript to select this VariableStorage.
+	 * @param names   The names used in the config of Skript to select this
+	 *                VariableStorage.
 	 * @return if the operation was successful, or if it's already registered.
 	 */
 	public static <T extends VariablesStorage> boolean registerStorage(Class<T> storage, String... names) {
@@ -172,18 +175,22 @@ public class Variables {
 
 		Node databases = config.getMainNode().get("databases");
 		if (!(databases instanceof SectionNode)) {
-			Skript.error("The config is missing the required 'databases' section that defines where the variables are saved");
+			Skript.error(
+					"The config is missing the required 'databases' section that defines where the variables are saved");
 			return false;
 		}
 
 		Skript.closeOnDisable(Variables::close);
 
-		// reports once per second how many variables were loaded. Useful to make clear that Skript is still doing something if it's loading many variables
+		// reports once per second how many variables were loaded. Useful to make clear
+		// that Skript is still doing something if it's loading many variables
 		Thread loadingLoggerThread = new Thread(() -> {
 			while (true) {
 				try {
-					Thread.sleep(Skript.logNormal() ? 1000 : 5000); // low verbosity won't disable these messages, but makes them more rare
-				} catch (InterruptedException ignored) {}
+					Thread.sleep(Skript.logNormal() ? 1000 : 5000); // low verbosity won't disable these messages, but
+																	// makes them more rare
+				} catch (InterruptedException ignored) {
+				}
 
 				synchronized (TEMP_VARIABLES) {
 					Map<String, NonNullPair<Object, VariablesStorage>> tvs = TEMP_VARIABLES.get();
@@ -229,11 +236,13 @@ public class Variables {
 
 					try {
 						@SuppressWarnings("unchecked")
-						Class<? extends VariablesStorage> storageClass = (Class<? extends VariablesStorage>) optional.get();
+						Class<? extends VariablesStorage> storageClass = (Class<? extends VariablesStorage>) optional
+								.get();
 						Constructor<?> constructor = storageClass.getDeclaredConstructor(String.class);
 						constructor.setAccessible(true);
 						variablesStorage = (VariablesStorage) constructor.newInstance(type);
-					} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+					} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+							| InvocationTargetException | NoSuchMethodException | SecurityException e) {
 						Skript.error("Failed to initialize database `" + name + "`");
 						successful = false;
 						continue;
@@ -267,8 +276,8 @@ public class Variables {
 
 					if (Skript.logVeryHigh()) {
 						Skript.info("Loaded " + newVariablesLoaded + " variables from the database " +
-							"'" + sectionNode.getKey() + "' in " +
-							((System.currentTimeMillis() - start) / 100) / 10.0 + " seconds");
+								"'" + sectionNode.getKey() + "' in " +
+								((System.currentTimeMillis() - start) / 100) / 10.0 + " seconds");
 					}
 				} else {
 					Skript.error("Invalid line in databases: databases must be defined as sections");
@@ -279,7 +288,8 @@ public class Variables {
 				return false;
 
 			if (STORAGES.isEmpty()) {
-				Skript.error("No databases to store variables are defined. Please enable at least the default database, even if you don't use variables at all.");
+				Skript.error(
+						"No databases to store variables are defined. Please enable at least the default database, even if you don't use variables at all.");
 				return false;
 			}
 		} finally {
@@ -288,7 +298,8 @@ public class Variables {
 			// make sure to put the loaded variables into the variables map
 			int notStoredVariablesCount = onStoragesLoaded();
 			if (notStoredVariablesCount != 0) {
-				Skript.warning(notStoredVariablesCount + " variables were possibly discarded due to not belonging to any database " +
+				Skript.warning(notStoredVariablesCount
+						+ " variables were possibly discarded due to not belonging to any database " +
 						"(SQL databases keep such variables and will continue to generate this warning, " +
 						"while CSV discards them).");
 			}
@@ -370,7 +381,7 @@ public class Variables {
 	 *
 	 * @param event the event.
 	 * @return the local variables from the event,
-	 * or {@code null} if the event had no local variables.
+	 *         or {@code null} if the event had no local variables.
 	 */
 	@Nullable
 	public static VariablesMap removeLocals(Event event) {
@@ -386,7 +397,7 @@ public class Variables {
 	 * Warning: this can overwrite local variables!
 	 *
 	 * @param event the event.
-	 * @param map the new local variables.
+	 * @param map   the new local variables.
 	 */
 	public static void setLocalVariables(Event event, @Nullable Object map) {
 		if (map != null) {
@@ -412,11 +423,13 @@ public class Variables {
 	}
 
 	/**
-	 * Copies local variables from provider to user, runs action, then copies variables back to provider.
+	 * Copies local variables from provider to user, runs action, then copies
+	 * variables back to provider.
 	 * Removes local variables from user after action is finished.
+	 * 
 	 * @param provider The originator of the local variables.
-	 * @param user The event to copy the variables to and back from.
-	 * @param action The code to run while the variables are copied.
+	 * @param user     The event to copy the variables to and back from.
+	 * @param action   The code to run while the variables are copied.
 	 */
 	public static void withLocalVariables(Event provider, Event user, @NotNull Runnable action) {
 		Variables.setLocalVariables(user, Variables.copyLocalVariables(provider));
@@ -430,15 +443,16 @@ public class Variables {
 	 * <p>
 	 * <b>Do not modify the returned value!</b>
 	 * <p>
-	 * This does not take into consideration default variables. You must use get methods from {@link ch.njol.skript.lang.Variable}
+	 * This does not take into consideration default variables. You must use get
+	 * methods from {@link ch.njol.skript.lang.Variable}
 	 *
-	 * @param name the variable's name.
+	 * @param name  the variable's name.
 	 * @param event if {@code local} is {@code true}, this is the event
-	 *                 the local variable resides in.
+	 *              the local variable resides in.
 	 * @param local if this variable is a local or global variable.
 	 * @return an {@link Object} for a normal variable
-	 * or a {@code Map<String, Object>} for a list variable,
-	 * or {@code null} if the variable is not set.
+	 *         or a {@code Map<String, Object>} for a list variable,
+	 *         or {@code null} if the variable is not set.
 	 */
 	// TODO don't expose the internal value, bad API
 	@Nullable
@@ -465,8 +479,8 @@ public class Variables {
 					VariableChange variableChange = changeQueue.stream()
 							.filter(change -> change.name.equals(n))
 							.reduce((first, second) -> second)
-									// Gets last value, as iteration is from head to tail,
-									//  and adding occurs at the tail (and we want the most recently added)
+							// Gets last value, as iteration is from head to tail,
+							// and adding occurs at the tail (and we want the most recently added)
 							.orElse(null);
 
 					if (variableChange != null) {
@@ -484,14 +498,18 @@ public class Variables {
 	/**
 	 * Returns an iterator over the values of this list variable.
 	 *
-	 * @param name the variable's name. This must be the name of a list variable, ie. it must end in *.
+	 * @param name  the variable's name. This must be the name of a list variable,
+	 *              ie. it must end in *.
 	 * @param event if {@code local} is {@code true}, this is the event
-	 *                 the local variable resides in.
+	 *              the local variable resides in.
 	 * @param local if this variable is a local or global variable.
-	 * @return an {@link Iterator} of {@link Pair}s, containing the {@link String} index and {@link Object} value of the
-	 * 			elements of the list. An empty iterator is returned if the variable does not exist.
+	 * @return an {@link Iterator} of {@link Pair}s, containing the {@link String}
+	 *         index and {@link Object} value of the
+	 *         elements of the list. An empty iterator is returned if the variable
+	 *         does not exist.
 	 */
-	public static Iterator<Pair<String, Object>> getVariableIterator(String name, boolean local, @Nullable Event event) {
+	public static Iterator<Pair<String, Object>> getVariableIterator(String name, boolean local,
+			@Nullable Event event) {
 		assert name.endsWith("*");
 		Object val = getVariable(name, event, local);
 		String subName = StringUtils.substring(name, 0, -1);
@@ -515,7 +533,8 @@ public class Variables {
 				while (keys.hasNext()) {
 					key = keys.next();
 					if (key != null) {
-						next = Variable.convertIfOldPlayer(subName + key, local, event, Variables.getVariable(subName + key, event, local));
+						next = Variable.convertIfOldPlayer(subName + key, local, event,
+								Variables.getVariable(subName + key, event, local));
 						if (next != null && !(next instanceof TreeMap))
 							return true;
 					}
@@ -545,9 +564,9 @@ public class Variables {
 	/**
 	 * Deletes a variable.
 	 *
-	 * @param name the variable's name.
+	 * @param name  the variable's name.
 	 * @param event if {@code local} is {@code true}, this is the event
-	 *                 the local variable resides in.
+	 *              the local variable resides in.
 	 * @param local if this variable is a local or global variable.
 	 */
 	public static void deleteVariable(String name, @Nullable Event event, boolean local) {
@@ -557,13 +576,13 @@ public class Variables {
 	/**
 	 * Sets a variable.
 	 *
-	 * @param name the variable's name.
-	 *                Can be a "list variable::*", but {@code value}
-	 *                must be {@code null} in this case.
+	 * @param name  the variable's name.
+	 *              Can be a "list variable::*", but {@code value}
+	 *              must be {@code null} in this case.
 	 * @param value The variable's value. Use {@code null}
-	 *                 to delete the variable.
+	 *              to delete the variable.
 	 * @param event if {@code local} is {@code true}, this is the event
-	 *                 the local variable resides in.
+	 *              the local variable resides in.
 	 * @param local if this variable is a local or global variable.
 	 */
 	public static void setVariable(String name, @Nullable Object value, @Nullable Event event, boolean local) {
@@ -598,7 +617,7 @@ public class Variables {
 	/**
 	 * Sets the given global variable name to the given value.
 	 *
-	 * @param name the variable name.
+	 * @param name  the variable name.
 	 * @param value the value, or {@code null} to delete the variable.
 	 */
 	static void setVariable(String name, @Nullable Object value) {
@@ -614,7 +633,8 @@ public class Variables {
 				variablesLock.writeLock().unlock();
 			}
 		} else {
-			// Couldn't acquire variable write lock, queue the change (blocking here is a bad idea)
+			// Couldn't acquire variable write lock, queue the change (blocking here is a
+			// bad idea)
 			queueVariableChange(name, value);
 		}
 	}
@@ -643,7 +663,7 @@ public class Variables {
 		/**
 		 * Creates a new {@link VariableChange} with the given name and value.
 		 *
-		 * @param name the variable name.
+		 * @param name  the variable name.
 		 * @param value the new variable value.
 		 */
 		public VariableChange(String name, @Nullable Object value) {
@@ -657,7 +677,7 @@ public class Variables {
 	 * Queues a variable change. Only to be called when direct write is not
 	 * possible, but thread cannot be allowed to block.
 	 *
-	 * @param name the variable name.
+	 * @param name  the variable name.
 	 * @param value the new value.
 	 */
 	private static void queueVariableChange(String name, @Nullable Object value) {
@@ -687,8 +707,8 @@ public class Variables {
 	 * <p>
 	 * Access must be synchronised.
 	 */
-	private static final SynchronizedReference<Map<String, NonNullPair<Object, VariablesStorage>>> TEMP_VARIABLES =
-			new SynchronizedReference<>(new HashMap<>());
+	private static final SynchronizedReference<Map<String, NonNullPair<Object, VariablesStorage>>> TEMP_VARIABLES = new SynchronizedReference<>(
+			new HashMap<>());
 
 	/**
 	 * The amount of variable conflicts between variable storages where
@@ -716,13 +736,14 @@ public class Variables {
 	 * i.e. you should not be holding any database locks or such
 	 * when calling this!
 	 *
-	 * @param name the variable name.
-	 * @param value the variable value.
+	 * @param name   the variable name.
+	 * @param value  the variable value.
 	 * @param source the storage the variable came from.
-	 * @return Whether the variable was stored somewhere. Not valid while storages are loading.
+	 * @return Whether the variable was stored somewhere. Not valid while storages
+	 *         are loading.
 	 */
 	static boolean variableLoaded(String name, @Nullable Object value, VariablesStorage source) {
-		assert Bukkit.isPrimaryThread(); // required by serialisation
+		assert FoliaCompat.isTickThread(); // required by serialisation
 
 		if (value == null)
 			return false;
@@ -747,12 +768,13 @@ public class Variables {
 					// Warn if needed
 					if (loadConflicts <= MAX_CONFLICT_WARNINGS) {
 						Skript.warning("The variable {" + name + "} was loaded twice from different databases (" +
-							existingVariableStorage.getUserConfigurationName() + " and " + source.getUserConfigurationName() +
-							"), only the one from " + source.getUserConfigurationName() + " will be kept.");
+								existingVariableStorage.getUserConfigurationName() + " and "
+								+ source.getUserConfigurationName() +
+								"), only the one from " + source.getUserConfigurationName() + " will be kept.");
 					} else if (loadConflicts == MAX_CONFLICT_WARNINGS + 1) {
 						Skript.warning("[!] More than " + MAX_CONFLICT_WARNINGS +
-							" variables were loaded more than once from different databases, " +
-							"no more warnings will be printed.");
+								" variables were loaded more than once from different databases, " +
+								"no more warnings will be printed.");
 					}
 
 					// Remove the value from the existing variable's storage
@@ -794,7 +816,7 @@ public class Variables {
 				}
 			}
 		} catch (Exception e) {
-			//noinspection ThrowableNotThrown
+			// noinspection ThrowableNotThrown
 			Skript.exception(e, "Error saving variable named " + name);
 		}
 
@@ -806,12 +828,13 @@ public class Variables {
 	 * and the appropriate databases.
 	 *
 	 * @return the amount of variables
-	 * that don't have a storage that accepts them.
+	 *         that don't have a storage that accepts them.
 	 */
 	@SuppressWarnings("null")
 	private static int onStoragesLoaded() {
 		if (loadConflicts > MAX_CONFLICT_WARNINGS)
-			Skript.warning("A total of " + loadConflicts + " variables were loaded more than once from different databases");
+			Skript.warning(
+					"A total of " + loadConflicts + " variables were loaded more than once from different databases");
 
 		Skript.debug("Databases loaded, setting variables...");
 
@@ -847,12 +870,12 @@ public class Variables {
 	 * <p>
 	 * Must be called from Bukkit's main thread.
 	 *
-	 * @param name the variable name.
+	 * @param name  the variable name.
 	 * @param value the value.
 	 * @return the serialized variable.
 	 */
 	public static SerializedVariable serialize(String name, @Nullable Object value) {
-		assert Bukkit.isPrimaryThread();
+		assert FoliaCompat.isTickThread();
 
 		// First, serialize the variable.
 		SerializedVariable.Value var;
@@ -874,7 +897,7 @@ public class Variables {
 	 * @return the serialized value.
 	 */
 	public static SerializedVariable.@Nullable Value serialize(@Nullable Object value) {
-		assert Bukkit.isPrimaryThread();
+		assert FoliaCompat.isTickThread();
 
 		return Classes.serialize(value);
 	}
@@ -882,7 +905,7 @@ public class Variables {
 	/**
 	 * Serializes and adds the variable change to the {@link #saveQueue}.
 	 *
-	 * @param name the variable name.
+	 * @param name  the variable name.
 	 * @param value the value of the variable.
 	 */
 	private static void saveVariableChange(String name, @Nullable Object value) {
@@ -918,15 +941,16 @@ public class Variables {
 						break;
 					}
 				}
-			} catch (InterruptedException ignored) {}
+			} catch (InterruptedException ignored) {
+			}
 		}
 	}, "Skript variable save thread");
 
 	/**
 	 * Closes the variable systems:
 	 * <ul>
-	 *     <li>Process all changes left in the {@link #changeQueue}.</li>
-	 *     <li>Stops the {@link #saveThread}.</li>
+	 * <li>Process all changes left in the {@link #changeQueue}.</li>
+	 * <li>Stops the {@link #saveThread}.</li>
 	 * </ul>
 	 */
 	public static void close() {
@@ -941,7 +965,8 @@ public class Variables {
 		while (saveQueue.size() > 0) {
 			try {
 				Thread.sleep(10);
-			} catch (InterruptedException ignored) {}
+			} catch (InterruptedException ignored) {
+			}
 		}
 
 		// Then we can safely interrupt and stop the thread

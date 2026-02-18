@@ -6,30 +6,29 @@ import ch.njol.skript.lang.Literal;
 import ch.njol.skript.lang.SkriptEvent;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.lang.Trigger;
-import org.bukkit.Bukkit;
+import ch.njol.skript.util.FoliaCompat;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.Nullable;
 
 public class EvtScript extends SkriptEvent {
-	
+
 	static {
 		Skript.registerEvent("Script Load/Unload", EvtScript.class, ScriptEvent.class,
-			"[:async] [script] (load|init|enable)",
-			"[:async] [script] (unload|stop|disable)"
-			).description(
-				"Called directly after the trigger is loaded, or directly before the whole script is unloaded.",
-				"The keyword 'async' indicates the trigger can be ran asynchronously, "
-			).examples(
-				"on load:",
-				"\tset {running::%script%} to true",
-				"on unload:",
-				"\tset {running::%script%} to false"
-			).since("2.0");
+				"[:async] [script] (load|init|enable)",
+				"[:async] [script] (unload|stop|disable)").description(
+						"Called directly after the trigger is loaded, or directly before the whole script is unloaded.",
+						"The keyword 'async' indicates the trigger can be ran asynchronously, ")
+				.examples(
+						"on load:",
+						"\tset {running::%script%} to true",
+						"on unload:",
+						"\tset {running::%script%} to false")
+				.since("2.0");
 	}
-	
+
 	private boolean async;
 	private boolean load;
-	
+
 	@Override
 	public boolean init(Literal<?>[] args, int matchedPattern, ParseResult parseResult) {
 		async = parseResult.hasTag("async");
@@ -59,19 +58,19 @@ public class EvtScript extends SkriptEvent {
 	public boolean isEventPrioritySupported() {
 		return false;
 	}
-	
+
 	@Override
 	public String toString(@Nullable Event event, boolean debug) {
 		return (async ? "async " : "") + "script " + (load ? "" : "un") + "load";
 	}
 
 	private void runTrigger(Trigger trigger, Event event) {
-		if (async || Bukkit.isPrimaryThread()) {
+		if (async || FoliaCompat.isTickThread()) {
 			trigger.execute(event);
 		} else {
 			if (Skript.getInstance().isEnabled())
-				Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), () -> trigger.execute(event));
+				FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), () -> trigger.execute(event));
 		}
 	}
-	
+
 }

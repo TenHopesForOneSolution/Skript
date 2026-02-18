@@ -3,7 +3,6 @@ package ch.njol.skript.util;
 import ch.njol.skript.Skript;
 import ch.njol.skript.bukkitutil.block.BlockCompat;
 import com.destroystokyo.paper.block.BlockSoundGroup;
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -155,7 +154,7 @@ public class DelayedChangeBlock implements Block {
 		if (newState != null) {
 			newState.setType(type);
 		} else {
-			Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
+			FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
 				@Override
 				public void run() {
 					block.setType(type);
@@ -284,7 +283,7 @@ public class DelayedChangeBlock implements Block {
 		if (newState != null) {
 			return false;
 		} else {
-			Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
+			FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
 				@Override
 				public void run() {
 					block.breakNaturally();
@@ -299,7 +298,7 @@ public class DelayedChangeBlock implements Block {
 		if (newState != null) {
 			return false;
 		} else {
-			Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
+			FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
 				@Override
 				public void run() {
 					block.breakNaturally(tool);
@@ -314,7 +313,7 @@ public class DelayedChangeBlock implements Block {
 		if (newState != null) {
 			return false;
 		} else {
-			Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
+			FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
 				@Override
 				public void run() {
 					block.breakNaturally(triggerEffect);
@@ -329,7 +328,7 @@ public class DelayedChangeBlock implements Block {
 		if (newState != null) {
 			return false;
 		} else {
-			Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
+			FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
 				@Override
 				public void run() {
 					block.breakNaturally(tool, triggerEffect);
@@ -340,11 +339,12 @@ public class DelayedChangeBlock implements Block {
 	}
 
 	@Override
-	public boolean breakNaturally(@NotNull ItemStack tool, boolean triggerEffect, boolean dropExperience, boolean forceEffect) {
+	public boolean breakNaturally(@NotNull ItemStack tool, boolean triggerEffect, boolean dropExperience,
+			boolean forceEffect) {
 		if (newState != null) {
 			return false;
 		} else {
-			Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
+			FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
 				@Override
 				public void run() {
 					block.breakNaturally(tool, triggerEffect, dropExperience, forceEffect);
@@ -408,7 +408,7 @@ public class DelayedChangeBlock implements Block {
 		if (newState != null) {
 			newState.setType(type);
 		} else {
-			Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
+			FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), new Runnable() {
 				@Override
 				public void run() {
 					block.setType(type, applyPhysics);
@@ -432,13 +432,14 @@ public class DelayedChangeBlock implements Block {
 		if (newState != null) {
 			newState.setBlockData(data);
 		} else {
-			Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), () -> block.setBlockData(data, applyPhysics));
+			FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), () -> block.setBlockData(data, applyPhysics));
 		}
 	}
 
 	@Nullable
 	@Override
-	public RayTraceResult rayTrace(Location start, Vector direction, double maxDistance, FluidCollisionMode fluidCollisionMode) {
+	public RayTraceResult rayTrace(Location start, Vector direction, double maxDistance,
+			FluidCollisionMode fluidCollisionMode) {
 		return block.rayTrace(start, direction, maxDistance, fluidCollisionMode);
 	}
 

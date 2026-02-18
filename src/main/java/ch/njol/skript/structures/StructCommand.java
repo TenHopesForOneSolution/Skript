@@ -28,6 +28,7 @@ import org.skriptlang.skript.lang.entry.EntryValidator;
 import org.skriptlang.skript.lang.entry.util.LiteralEntryData;
 import org.skriptlang.skript.lang.entry.util.VariableStringEntryData;
 import ch.njol.skript.registrations.Classes;
+import ch.njol.skript.util.FoliaCompat;
 import ch.njol.skript.util.StringMode;
 import ch.njol.skript.util.Timespan;
 import ch.njol.skript.util.Utils;
@@ -47,86 +48,89 @@ import java.util.regex.Pattern;
 @Name("Command")
 @Description("Used for registering custom commands.")
 @Example("""
-	command /broadcast <string>:
-		usage: A command for broadcasting a message to all players.
-		permission: skript.command.broadcast
-		permission message: You don't have permission to broadcast messages
-		aliases: /bc
-		executable by: players and console
-		cooldown: 15 seconds
-		cooldown message: You last broadcast a message %elapsed time% ago. You can broadcast another message in %remaining time%.
-		cooldown bypass: skript.command.broadcast.admin
-		cooldown storage: {cooldown::%player%}
-		trigger:
-			broadcast the argument
-	""")
+		command /broadcast <string>:
+			usage: A command for broadcasting a message to all players.
+			permission: skript.command.broadcast
+			permission message: You don't have permission to broadcast messages
+			aliases: /bc
+			executable by: players and console
+			cooldown: 15 seconds
+			cooldown message: You last broadcast a message %elapsed time% ago. You can broadcast another message in %remaining time%.
+			cooldown bypass: skript.command.broadcast.admin
+			cooldown storage: {cooldown::%player%}
+			trigger:
+				broadcast the argument
+		""")
 @Since("1.0")
 public class StructCommand extends Structure {
 
-	// Paper versions with the new command system need a delay before syncing commands or a CME will occur.
-	private static final boolean DELAY_COMMAND_SYNCING = Skript.classExists("io.papermc.paper.command.brigadier.Commands");
+	// Paper versions with the new command system need a delay before syncing
+	// commands or a CME will occur.
+	private static final boolean DELAY_COMMAND_SYNCING = Skript
+			.classExists("io.papermc.paper.command.brigadier.Commands");
 
 	public static final Priority PRIORITY = new Priority(500);
 
 	private static final Pattern COMMAND_PATTERN = Pattern.compile("(?i)^command\\s+/?(\\S+)\\s*(\\s+(.+))?$");
-	private static final Pattern ARGUMENT_PATTERN = Pattern.compile("<\\s*(?:([^>]+?)\\s*:\\s*)?(.+?)\\s*(?:=\\s*(" + SkriptParser.WILDCARD + "))?\\s*>");
+	private static final Pattern ARGUMENT_PATTERN = Pattern
+			.compile("<\\s*(?:([^>]+?)\\s*:\\s*)?(.+?)\\s*(?:=\\s*(" + SkriptParser.WILDCARD + "))?\\s*>");
 	private static final Pattern DESCRIPTION_PATTERN = Pattern.compile("(?<!\\\\)%-?(.+?)%");
 
 	private static final AtomicBoolean SYNC_COMMANDS = new AtomicBoolean();
 
 	static {
 		Skript.registerStructure(
-			StructCommand.class,
-			EntryValidator.builder()
-				.addEntryData(new VariableStringEntryData("usage", null, true))
-				.addEntry("description", "", true)
-				.addEntry("prefix", null, true)
-				.addEntry("permission", "", true)
-				.addEntryData(new VariableStringEntryData("permission message", null, true))
-				.addEntryData(new KeyValueEntryData<List<String>>("aliases", new ArrayList<>(), true) {
-					private final Pattern pattern = Pattern.compile("\\s*,\\s*/?");
+				StructCommand.class,
+				EntryValidator.builder()
+						.addEntryData(new VariableStringEntryData("usage", null, true))
+						.addEntry("description", "", true)
+						.addEntry("prefix", null, true)
+						.addEntry("permission", "", true)
+						.addEntryData(new VariableStringEntryData("permission message", null, true))
+						.addEntryData(new KeyValueEntryData<List<String>>("aliases", new ArrayList<>(), true) {
+							private final Pattern pattern = Pattern.compile("\\s*,\\s*/?");
 
-					@Override
-					protected List<String> getValue(String value) {
-						List<String> aliases = new ArrayList<>(Arrays.asList(pattern.split(value)));
-						if (aliases.get(0).startsWith("/")) {
-							aliases.set(0, aliases.get(0).substring(1));
-						} else if (aliases.get(0).isEmpty()) {
-							aliases = new ArrayList<>(0);
-						}
-						return aliases;
-					}
-				})
-				.addEntryData(new KeyValueEntryData<Integer>("executable by", ScriptCommand.CONSOLE | ScriptCommand.PLAYERS, true) {
-					private final Pattern pattern = Pattern.compile("\\s*,\\s*|\\s+(and|or)\\s+");
-
-					@Override
-					@Nullable
-					protected Integer getValue(String value) {
-						int executableBy = 0;
-						for (String b : pattern.split(value)) {
-							if (b.equalsIgnoreCase("console") || b.equalsIgnoreCase("the console")) {
-								executableBy |= ScriptCommand.CONSOLE;
-							} else if (b.equalsIgnoreCase("players") || b.equalsIgnoreCase("player")) {
-								executableBy |= ScriptCommand.PLAYERS;
-							} else {
-								return null;
+							@Override
+							protected List<String> getValue(String value) {
+								List<String> aliases = new ArrayList<>(Arrays.asList(pattern.split(value)));
+								if (aliases.get(0).startsWith("/")) {
+									aliases.set(0, aliases.get(0).substring(1));
+								} else if (aliases.get(0).isEmpty()) {
+									aliases = new ArrayList<>(0);
+								}
+								return aliases;
 							}
-						}
-						return executableBy;
-					}
-				})
-				.addEntryData(new LiteralEntryData<>("cooldown", null, true, Timespan.class))
-				.addEntryData(new VariableStringEntryData("cooldown message", null, true))
-				.addEntry("cooldown bypass", null, true)
-				.addEntryData(new VariableStringEntryData("cooldown storage", null, true, StringMode.VARIABLE_NAME))
-				.addSection("trigger", false)
-				.unexpectedEntryMessage(key ->
-					"Unexpected entry '" + key + "'. Check that it's spelled correctly, and ensure that you have put all code into a trigger."
-				)
-				.build(),
-			"command <.+>"
-		);
+						})
+						.addEntryData(new KeyValueEntryData<Integer>("executable by",
+								ScriptCommand.CONSOLE | ScriptCommand.PLAYERS, true) {
+							private final Pattern pattern = Pattern.compile("\\s*,\\s*|\\s+(and|or)\\s+");
+
+							@Override
+							@Nullable
+							protected Integer getValue(String value) {
+								int executableBy = 0;
+								for (String b : pattern.split(value)) {
+									if (b.equalsIgnoreCase("console") || b.equalsIgnoreCase("the console")) {
+										executableBy |= ScriptCommand.CONSOLE;
+									} else if (b.equalsIgnoreCase("players") || b.equalsIgnoreCase("player")) {
+										executableBy |= ScriptCommand.PLAYERS;
+									} else {
+										return null;
+									}
+								}
+								return executableBy;
+							}
+						})
+						.addEntryData(new LiteralEntryData<>("cooldown", null, true, Timespan.class))
+						.addEntryData(new VariableStringEntryData("cooldown message", null, true))
+						.addEntry("cooldown bypass", null, true)
+						.addEntryData(
+								new VariableStringEntryData("cooldown storage", null, true, StringMode.VARIABLE_NAME))
+						.addSection("trigger", false)
+						.unexpectedEntryMessage(key -> "Unexpected entry '" + key
+								+ "'. Check that it's spelled correctly, and ensure that you have put all code into a trigger.")
+						.build(),
+				"command <.+>");
 	}
 
 	@SuppressWarnings("NotNullFieldNotInitialized")
@@ -136,7 +140,8 @@ public class StructCommand extends Structure {
 	private ScriptCommand scriptCommand;
 
 	@Override
-	public boolean init(Literal<?>[] args, int matchedPattern, ParseResult parseResult, @Nullable EntryContainer entryContainer) {
+	public boolean init(Literal<?>[] args, int matchedPattern, ParseResult parseResult,
+			@Nullable EntryContainer entryContainer) {
 		assert entryContainer != null; // cannot be null for non-simple structures
 		this.entryContainer = entryContainer;
 		return true;
@@ -181,8 +186,7 @@ public class StructCommand extends Structure {
 		if (existingCommand != null && existingCommand.getLabel().equals(command)) {
 			Script script = existingCommand.getScript();
 			Skript.error("A command with the name /" + existingCommand.getName() + " is already defined"
-				+ (script != null ? (" in " + script.getConfig().getFileName()) : "")
-			);
+					+ (script != null ? (" in " + script.getConfig().getFileName()) : ""));
 			getParser().deleteCurrentEvent();
 			return false;
 		}
@@ -190,7 +194,7 @@ public class StructCommand extends Structure {
 		String arguments = matcher.group(3) == null ? "" : matcher.group(3);
 		StringBuilder pattern = new StringBuilder();
 
-		List<Argument<?>> currentArguments = Commands.currentArguments = new ArrayList<>(); //Mirre
+		List<Argument<?>> currentArguments = Commands.currentArguments = new ArrayList<>(); // Mirre
 		matcher = ARGUMENT_PATTERN.matcher(arguments);
 		int lastEnd = 0;
 		int optionals = 0;
@@ -218,7 +222,8 @@ public class StructCommand extends Structure {
 				return false;
 			}
 
-			Argument<?> arg = Argument.newInstance(matcher.group(1), c, matcher.group(3), i, !p.getSecond(), optionals > 0);
+			Argument<?> arg = Argument.newInstance(matcher.group(1), c, matcher.group(3), i, !p.getSecond(),
+					optionals > 0);
 			if (arg == null) {
 				getParser().deleteCurrentEvent();
 				return false;
@@ -229,7 +234,8 @@ public class StructCommand extends Structure {
 				pattern.append('[');
 				optionals++;
 			}
-			pattern.append("%").append(arg.isOptional() ? "-" : "").append(Utils.toEnglishPlural(c.getCodeName(), p.getSecond())).append("%");
+			pattern.append("%").append(arg.isOptional() ? "-" : "")
+					.append(Utils.toEnglishPlural(c.getCodeName(), p.getSecond())).append("%");
 		}
 
 		pattern.append(Commands.escape("" + arguments.substring(lastEnd)));
@@ -255,11 +261,12 @@ public class StructCommand extends Structure {
 		String prefix = entryContainer.getOptional("prefix", String.class, false);
 
 		String permission = entryContainer.get("permission", String.class, true);
-		VariableString permissionMessage = entryContainer.getOptional("permission message", VariableString.class, false);
+		VariableString permissionMessage = entryContainer.getOptional("permission message", VariableString.class,
+				false);
 		if (permissionMessage != null && permission.isEmpty())
 			Skript.warning("command /" + command + " has a permission message set, but not a permission");
 
-		List<String> aliases = entryContainer.get("aliases", List.class,true);
+		List<String> aliases = entryContainer.get("aliases", List.class, true);
 		int executableBy = entryContainer.get("executable by", Integer.class, true);
 
 		Timespan cooldown = entryContainer.getOptional("cooldown", Timespan.class, false);
@@ -283,9 +290,11 @@ public class StructCommand extends Structure {
 
 		Commands.currentArguments = currentArguments;
 		try {
-			scriptCommand = new ScriptCommand(getParser().getCurrentScript(), command, pattern.toString(), currentArguments, description, prefix,
-				usage, aliases, permission, permissionMessage, cooldown, cooldownMessage, cooldownBypass, cooldownStorage,
-				executableBy, entryContainer.get("trigger", SectionNode.class, false));
+			scriptCommand = new ScriptCommand(getParser().getCurrentScript(), command, pattern.toString(),
+					currentArguments, description, prefix,
+					usage, aliases, permission, permissionMessage, cooldown, cooldownMessage, cooldownBypass,
+					cooldownStorage,
+					executableBy, entryContainer.get("trigger", SectionNode.class, false));
 		} finally {
 			Commands.currentArguments = null;
 		}
@@ -323,9 +332,10 @@ public class StructCommand extends Structure {
 		if (SYNC_COMMANDS.get()) {
 			SYNC_COMMANDS.set(false);
 			if (DELAY_COMMAND_SYNCING) {
-				// if the plugin is disabled, the server is likely closing and delaying will cause an error.
+				// if the plugin is disabled, the server is likely closing and delaying will
+				// cause an error.
 				if (Bukkit.getPluginManager().isPluginEnabled(Skript.getInstance()))
-					Bukkit.getScheduler().runTask(Skript.getInstance(), this::forceCommandSync);
+					FoliaCompat.runTask(Skript.getInstance(), this::forceCommandSync);
 			} else {
 				forceCommandSync();
 			}

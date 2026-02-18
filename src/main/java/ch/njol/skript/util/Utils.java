@@ -142,72 +142,82 @@ public abstract class Utils {
 		return new Pair<>(s, -1);
 	}
 
-//	public final static class AmountResponse {
-//		public final String s;
-//		public final int amount;
-//		public final boolean every;
-//
-//		public AmountResponse(final String s, final int amount, final boolean every) {
-//			this.s = s;
-//			this.amount = amount;
-//			this.every = every;
-//		}
-//
-//		public AmountResponse(final String s, final boolean every) {
-//			this.s = s;
-//			amount = -1;
-//			this.every = every;
-//		}
-//
-//		public AmountResponse(final String s, final int amount) {
-//			this.s = s;
-//			this.amount = amount;
-//			every = false;
-//		}
-//
-//		public AmountResponse(final String s) {
-//			this.s = s;
-//			amount = -1;
-//			every = false;
-//		}
-//	}
-//
-//	public final static AmountResponse getAmountWithEvery(final String s) {
-//		if (s.matches("\\d+ of (all|every) .+")) {
-//			return new AmountResponse("" + s.split(" ", 4)[3], Utils.parseInt("" + s.split(" ", 2)[0]), true);
-//		} else if (s.matches("\\d+ of .+")) {
-//			return new AmountResponse("" + s.split(" ", 3)[2], Utils.parseInt("" + s.split(" ", 2)[0]));
-//		} else if (s.matches("\\d+ .+")) {
-//			return new AmountResponse("" + s.split(" ", 2)[1], Utils.parseInt("" + s.split(" ", 2)[0]));
-//		} else if (s.matches("an? .+")) {
-//			return new AmountResponse("" + s.split(" ", 2)[1], 1);
-//		} else if (s.matches("(all|every) .+")) {
-//			return new AmountResponse("" + s.split(" ", 2)[1], true);
-//		}
-//		return new AmountResponse(s);
-//	}
+	// public final static class AmountResponse {
+	// public final String s;
+	// public final int amount;
+	// public final boolean every;
+	//
+	// public AmountResponse(final String s, final int amount, final boolean every)
+	// {
+	// this.s = s;
+	// this.amount = amount;
+	// this.every = every;
+	// }
+	//
+	// public AmountResponse(final String s, final boolean every) {
+	// this.s = s;
+	// amount = -1;
+	// this.every = every;
+	// }
+	//
+	// public AmountResponse(final String s, final int amount) {
+	// this.s = s;
+	// this.amount = amount;
+	// every = false;
+	// }
+	//
+	// public AmountResponse(final String s) {
+	// this.s = s;
+	// amount = -1;
+	// every = false;
+	// }
+	// }
+	//
+	// public final static AmountResponse getAmountWithEvery(final String s) {
+	// if (s.matches("\\d+ of (all|every) .+")) {
+	// return new AmountResponse("" + s.split(" ", 4)[3], Utils.parseInt("" +
+	// s.split(" ", 2)[0]), true);
+	// } else if (s.matches("\\d+ of .+")) {
+	// return new AmountResponse("" + s.split(" ", 3)[2], Utils.parseInt("" +
+	// s.split(" ", 2)[0]));
+	// } else if (s.matches("\\d+ .+")) {
+	// return new AmountResponse("" + s.split(" ", 2)[1], Utils.parseInt("" +
+	// s.split(" ", 2)[0]));
+	// } else if (s.matches("an? .+")) {
+	// return new AmountResponse("" + s.split(" ", 2)[1], 1);
+	// } else if (s.matches("(all|every) .+")) {
+	// return new AmountResponse("" + s.split(" ", 2)[1], true);
+	// }
+	// return new AmountResponse(s);
+	// }
 
 	/**
-	 * Loads classes of the plugin by package. Useful for registering many syntax elements like Skript does it.
+	 * Loads classes of the plugin by package. Useful for registering many syntax
+	 * elements like Skript does it.
 	 *
-	 * @param basePackage The base package to add to all sub packages, e.g. <tt>"ch.njol.skript"</tt>.
-	 * @param subPackages Which subpackages of the base package should be loaded, e.g. <tt>"expressions",
-	 *                       "conditions", "effects"</tt>. Subpackages of these packages will be loaded
-	 *                    as well. Use an empty array to load all subpackages of the base package.
+	 * @param basePackage The base package to add to all sub packages, e.g.
+	 *                    <tt>"ch.njol.skript"</tt>.
+	 * @param subPackages Which subpackages of the base package should be loaded,
+	 *                    e.g. <tt>"expressions",
+	 *                       "conditions", "effects"</tt>. Subpackages of these
+	 *                    packages will be loaded
+	 *                    as well. Use an empty array to load all subpackages of the
+	 *                    base package.
 	 * @return This SkriptAddon
-	 * @throws IOException If some error occurred attempting to read the plugin's jar file.
+	 * @throws IOException If some error occurred attempting to read the plugin's
+	 *                     jar file.
 	 * @deprecated Use {@link org.skriptlang.skript.util.ClassLoader} instead.
 	 */
 	@Deprecated(since = "2.10.0", forRemoval = true)
 	public static Class<?>[] getClasses(Plugin plugin, String basePackage, String... subPackages) throws IOException {
 		List<Class<?>> classes = new ArrayList<>();
 		org.skriptlang.skript.util.ClassLoader loader = org.skriptlang.skript.util.ClassLoader.builder()
-			.basePackage(basePackage)
-			.addSubPackages(subPackages)
-			.deep(true)
-			.initialize(true)
-			.forEachClass(classes::add)
-			.build();
+				.basePackage(basePackage)
+				.addSubPackages(subPackages)
+				.deep(true)
+				.initialize(true)
+				.forEachClass(classes::add)
+				.build();
 		File jarFile = getFile(plugin);
 		if (jarFile != null) {
 			loader.loadClasses(plugin.getClass(), jarFile);
@@ -218,7 +228,8 @@ public abstract class Utils {
 	}
 
 	/**
-	 * The first invocation of this method uses reflection to invoke the protected method {@link JavaPlugin#getFile()}
+	 * The first invocation of this method uses reflection to invoke the protected
+	 * method {@link JavaPlugin#getFile()}
 	 * to get the plugin's jar file.
 	 *
 	 * @return The jar file of the plugin.
@@ -255,19 +266,22 @@ public abstract class Utils {
 	/**
 	 * Stores the result of {@link #isPlural(String)}.
 	 *
-	 * @param updated The singular version of the passed word, if a single variant exists.
-	 * @param plural Whether the word is plural.
+	 * @param updated The singular version of the passed word, if a single variant
+	 *                exists.
+	 * @param plural  Whether the word is plural.
 	 */
 	public record PluralResult(String updated, boolean plural) {
 
 	}
 
 	/**
-	 * Returns whether a word is plural. If it is, {@code updated} contains the single variant of the word.
+	 * Returns whether a word is plural. If it is, {@code updated} contains the
+	 * single variant of the word.
 	 * Otherwise, {@code updated == word}.
 	 *
 	 * @param word The word to check.
-	 * @return A pair with the updated word and a boolean indicating whether it was plural.
+	 * @return A pair with the updated word and a boolean indicating whether it was
+	 *         plural.
 	 */
 	public static PluralResult isPlural(String word) {
 		Preconditions.checkNotNull(word, "word cannot be null");
@@ -290,17 +304,15 @@ public abstract class Utils {
 
 			if (word.endsWith(ending.plural())) {
 				return new PluralResult(
-					word.substring(0, word.length() - ending.plural().length()) + ending.singular(),
-					true
-				);
+						word.substring(0, word.length() - ending.plural().length()) + ending.singular(),
+						true);
 			}
 
 			if (word.endsWith(ending.plural().toUpperCase(Locale.ENGLISH))) {
 				return new PluralResult(
-					word.substring(0, word.length() - ending.plural().length())
-						+ ending.singular().toUpperCase(Locale.ENGLISH),
-					true
-				);
+						word.substring(0, word.length() - ending.plural().length())
+								+ ending.singular().toUpperCase(Locale.ENGLISH),
+						true);
 			}
 		}
 
@@ -324,9 +336,11 @@ public abstract class Utils {
 
 	/**
 	 * Adds a singular/plural word override for the given words.
-	 * This is inserted first in the list of words to be checked: it will always be matched
+	 * This is inserted first in the list of words to be checked: it will always be
+	 * matched
 	 * and will override all other plurality rules.
-	 * This will only match the word <s>exactly</s>, and will not apply to derivations of the word.
+	 * This will only match the word <s>exactly</s>, and will not apply to
+	 * derivations of the word.
 	 *
 	 * @param singular The singular form of the word
 	 * @param plural   The plural form of the word
@@ -361,7 +375,8 @@ public abstract class Utils {
 	 *
 	 * @param s
 	 * @param p
-	 * @return The english plural of the given word, or the word itself if p is false.
+	 * @return The english plural of the given word, or the word itself if p is
+	 *         false.
 	 */
 	public static String toEnglishPlural(final String s, final boolean p) {
 		if (p)
@@ -370,7 +385,8 @@ public abstract class Utils {
 	}
 
 	/**
-	 * Adds 'a' or 'an' to the given string, depending on the first character of the string.
+	 * Adds 'a' or 'an' to the given string, depending on the first character of the
+	 * string.
 	 *
 	 * @param s The string to add the article to
 	 * @return The given string with an appended a/an and a space at the beginning
@@ -382,7 +398,8 @@ public abstract class Utils {
 	}
 
 	/**
-	 * Adds 'A' or 'An' to the given string, depending on the first character of the string.
+	 * Adds 'A' or 'An' to the given string, depending on the first character of the
+	 * string.
 	 *
 	 * @param s The string to add the article to
 	 * @return The given string with an appended A/An and a space at the beginning
@@ -394,11 +411,13 @@ public abstract class Utils {
 	}
 
 	/**
-	 * Adds 'a' or 'an' to the given string, depending on the first character of the string.
+	 * Adds 'a' or 'an' to the given string, depending on the first character of the
+	 * string.
 	 *
 	 * @param s    The string to add the article to
 	 * @param capA Whether to use a capital a or not
-	 * @return The given string with an appended a/an (or A/An if capA is true) and a space at the beginning
+	 * @return The given string with an appended a/an (or A/An if capA is true) and
+	 *         a space at the beginning
 	 * @see #a(String)
 	 */
 	public static String a(final String s, final boolean capA) {
@@ -415,7 +434,8 @@ public abstract class Utils {
 	}
 
 	/**
-	 * Gets the collision height of solid or partially-solid blocks at the center of the block.
+	 * Gets the collision height of solid or partially-solid blocks at the center of
+	 * the block.
 	 * This is mostly for use in the {@link EffTeleport teleport effect}.
 	 * <p>
 	 * This version operates on numeric ids, thus only working on
@@ -473,15 +493,19 @@ public abstract class Utils {
 	}
 
 	/**
-	 * Sends a plugin message using the first player from {@link Bukkit#getOnlinePlayers()}.
+	 * Sends a plugin message using the first player from
+	 * {@link Bukkit#getOnlinePlayers()}.
 	 * <p>
-	 * The next plugin message to be received through {@code channel} will be assumed to be
+	 * The next plugin message to be received through {@code channel} will be
+	 * assumed to be
 	 * the response.
 	 *
 	 * @param channel the channel for this plugin message
 	 * @param data    the data to add to the outgoing message
-	 * @return a completable future for the message of the responding plugin message, if there is one.
-	 * this completable future will complete exceptionally if no players are online.
+	 * @return a completable future for the message of the responding plugin
+	 *         message, if there is one.
+	 *         this completable future will complete exceptionally if no players are
+	 *         online.
 	 */
 	public static CompletableFuture<ByteArrayDataInput> sendPluginMessage(String channel, String... data) {
 		return sendPluginMessage(channel, r -> true, data);
@@ -490,34 +514,40 @@ public abstract class Utils {
 	/**
 	 * Sends a plugin message using the from {@code player}.
 	 * <p>
-	 * The next plugin message to be received through {@code channel} will be assumed to be
+	 * The next plugin message to be received through {@code channel} will be
+	 * assumed to be
 	 * the response.
 	 *
 	 * @param player  the player to send the plugin message through
 	 * @param channel the channel for this plugin message
 	 * @param data    the data to add to the outgoing message
-	 * @return a completable future for the message of the responding plugin message, if there is one.
-	 * this completable future will complete exceptionally if no players are online.
+	 * @return a completable future for the message of the responding plugin
+	 *         message, if there is one.
+	 *         this completable future will complete exceptionally if no players are
+	 *         online.
 	 */
 	public static CompletableFuture<ByteArrayDataInput> sendPluginMessage(Player player, String channel,
-																		  String... data) {
+			String... data) {
 		return sendPluginMessage(player, channel, r -> true, data);
 	}
 
 	/**
-	 * Sends a plugin message using the first player from {@link Bukkit#getOnlinePlayers()}.
+	 * Sends a plugin message using the first player from
+	 * {@link Bukkit#getOnlinePlayers()}.
 	 *
 	 * @param channel         the channel for this plugin message
-	 * @param messageVerifier verifies that a plugin message is the response to the sent message
+	 * @param messageVerifier verifies that a plugin message is the response to the
+	 *                        sent message
 	 * @param data            the data to add to the outgoing message
-	 * @return a completable future for the message of the responding plugin message, if there is one.
-	 * this completable future will complete exceptionally if the player is null.
+	 * @return a completable future for the message of the responding plugin
+	 *         message, if there is one.
+	 *         this completable future will complete exceptionally if the player is
+	 *         null.
 	 * @throws IllegalStateException when there are no players online
 	 */
 	public static CompletableFuture<ByteArrayDataInput> sendPluginMessage(
-		String channel,
-		Predicate<ByteArrayDataInput> messageVerifier, String... data
-	) throws IllegalStateException {
+			String channel,
+			Predicate<ByteArrayDataInput> messageVerifier, String... data) throws IllegalStateException {
 		Player firstPlayer = Iterables.getFirst(Bukkit.getOnlinePlayers(), null);
 		if (firstPlayer == null)
 			throw new IllegalStateException("There are no players online");
@@ -527,7 +557,8 @@ public abstract class Utils {
 	/**
 	 * Sends a plugin message.
 	 * <p>
-	 * Example usage using the "GetServers" bungee plugin message channel via an overload:
+	 * Example usage using the "GetServers" bungee plugin message channel via an
+	 * overload:
 	 * <code>
 	 * Utils.sendPluginMessage("BungeeCord", r -> "GetServers".equals(r.readUTF()), "GetServers")
 	 * .thenAccept(response -> Bukkit.broadcastMessage(response.readUTF()) // comma delimited server broadcast
@@ -539,15 +570,17 @@ public abstract class Utils {
 	 *
 	 * @param player          the player to send the plugin message through
 	 * @param channel         the channel for this plugin message
-	 * @param messageVerifier verifies that a plugin message is the response to the sent message
+	 * @param messageVerifier verifies that a plugin message is the response to the
+	 *                        sent message
 	 * @param data            the data to add to the outgoing message
-	 * @return a completable future for the message of the responding plugin message, if there is one.
-	 * this completable future will complete exceptionally if the player is null.
+	 * @return a completable future for the message of the responding plugin
+	 *         message, if there is one.
+	 *         this completable future will complete exceptionally if the player is
+	 *         null.
 	 */
 	public static CompletableFuture<ByteArrayDataInput> sendPluginMessage(
-		Player player, String channel,
-		Predicate<ByteArrayDataInput> messageVerifier, String... data
-	) {
+			Player player, String channel,
+			Predicate<ByteArrayDataInput> messageVerifier, String... data) {
 		CompletableFuture<ByteArrayDataInput> completableFuture = new CompletableFuture<>();
 
 		Skript skript = Skript.getInstance();
@@ -558,7 +591,7 @@ public abstract class Utils {
 		PluginMessageListener listener = (sendingChannel, sendingPlayer, message) -> {
 			ByteArrayDataInput input = ByteStreams.newDataInput(message);
 			if (channel.equals(sendingChannel) && sendingPlayer == player && !completableFuture.isDone()
-				&& !completableFuture.isCancelled() && messageVerifier.test(input)) {
+					&& !completableFuture.isCancelled() && messageVerifier.test(input)) {
 				completableFuture.complete(input);
 			}
 		};
@@ -566,10 +599,11 @@ public abstract class Utils {
 		messenger.registerIncomingPluginChannel(skript, channel, listener);
 
 		completableFuture.whenComplete((r, ex) -> messenger.unregisterIncomingPluginChannel(skript, channel,
-			listener));
+				listener));
 
-		// if we haven't gotten a response after a minute, let's just assume there wil never be one
-		Bukkit.getScheduler().scheduleSyncDelayedTask(skript, () -> {
+		// if we haven't gotten a response after a minute, let's just assume there wil
+		// never be one
+		FoliaCompat.scheduleSyncDelayedTask(skript, () -> {
 
 			if (!completableFuture.isDone())
 				completableFuture.cancel(true);
@@ -583,8 +617,8 @@ public abstract class Utils {
 		return completableFuture;
 	}
 
-	final static ChatColor[] styles = {ChatColor.BOLD, ChatColor.ITALIC, ChatColor.STRIKETHROUGH, ChatColor.UNDERLINE,
-		ChatColor.MAGIC, ChatColor.RESET};
+	final static ChatColor[] styles = { ChatColor.BOLD, ChatColor.ITALIC, ChatColor.STRIKETHROUGH, ChatColor.UNDERLINE,
+			ChatColor.MAGIC, ChatColor.RESET };
 	final static Map<String, String> chat = new HashMap<>();
 	final static Map<String, String> englishChat = new HashMap<>();
 
@@ -625,7 +659,8 @@ public abstract class Utils {
 	}
 
 	/**
-	 * Replaces english &lt;chat styles&gt; in the message. This is used for messages in the language file as the
+	 * Replaces english &lt;chat styles&gt; in the message. This is used for
+	 * messages in the language file as the
 	 * language of colour codes is not well defined while the language is
 	 * changing, and for some hardcoded messages.
 	 *
@@ -714,7 +749,8 @@ public abstract class Utils {
 	}
 
 	/**
-	 * Gets a random value between <tt>start</tt> (inclusive) and <tt>end</tt> (exclusive)
+	 * Gets a random value between <tt>start</tt> (inclusive) and <tt>end</tt>
+	 * (exclusive)
 	 *
 	 * @param start
 	 * @param end
@@ -738,13 +774,16 @@ public abstract class Utils {
 	 * in other words, the first supertype they all share.
 	 *
 	 * <h3>Arbitrary Selection</h3>
-	 * Classes may have <b>multiple</b> highest common denominators: interfaces that they share
+	 * Classes may have <b>multiple</b> highest common denominators: interfaces that
+	 * they share
 	 * which do not extend each other.
 	 * This method selects a <b>superclass</b> first (where possible)
 	 * but its selection of interfaces is quite random.
-	 * For this reason, it is advised to specify a "best guess" class as the first parameter, which will be selected if
+	 * For this reason, it is advised to specify a "best guess" class as the first
+	 * parameter, which will be selected if
 	 * it's appropriate.
-	 * Note that if the "best guess" is <i>not</i> a real supertype, it can never be selected.
+	 * Note that if the "best guess" is <i>not</i> a real supertype, it can never be
+	 * selected.
 	 *
 	 * @param bestGuess The fallback class to guess
 	 * @param classes   The types to check
@@ -755,19 +794,20 @@ public abstract class Utils {
 	@SafeVarargs
 	@SuppressWarnings("unchecked")
 	public static <Found, Type extends Found> Class<Found> highestDenominator(Class<? super Found> bestGuess,
-																			  @NotNull Class<? extends Type> @NotNull ... classes) {
+			@NotNull Class<? extends Type> @NotNull... classes) {
 		assert classes.length > 0;
 		Class<?> chosen = classes[0];
-		outer:
-		for (Class<?> checking : classes) {
-			assert !checking.isArray() && !checking.isPrimitive() : "%s has no super".formatted(checking.getSimpleName());
+		outer: for (Class<?> checking : classes) {
+			assert !checking.isArray() && !checking.isPrimitive()
+					: "%s has no super".formatted(checking.getSimpleName());
 			if (chosen.isAssignableFrom(checking))
 				continue;
 			Class<?> superType = checking;
-			do if (superType != Object.class && superType.isAssignableFrom(chosen)) {
-				chosen = superType;
-				continue outer;
-			}
+			do
+				if (superType != Object.class && superType.isAssignableFrom(chosen)) {
+					chosen = superType;
+					continue outer;
+				}
 			while ((superType = superType.getSuperclass()) != null);
 			for (final Class<?> anInterface : checking.getInterfaces()) {
 				superType = highestDenominator(Object.class, anInterface, chosen);
@@ -787,13 +827,16 @@ public abstract class Utils {
 	}
 
 	/**
-	 * Parses a number that was validated to be an integer but might still result in a {@link NumberFormatException}
+	 * Parses a number that was validated to be an integer but might still result in
+	 * a {@link NumberFormatException}
 	 * when parsed with {@link Integer#parseInt(String)} due to
 	 * overflow.
-	 * This method will return {@link Integer#MIN_VALUE} or {@link Integer#MAX_VALUE} respectively if that happens.
+	 * This method will return {@link Integer#MIN_VALUE} or
+	 * {@link Integer#MAX_VALUE} respectively if that happens.
 	 *
 	 * @param s
-	 * @return The parsed integer, {@link Integer#MIN_VALUE} or {@link Integer#MAX_VALUE} respectively
+	 * @return The parsed integer, {@link Integer#MIN_VALUE} or
+	 *         {@link Integer#MAX_VALUE} respectively
 	 */
 	public static int parseInt(final String s) {
 		assert s.matches("-?\\d+");
@@ -805,13 +848,16 @@ public abstract class Utils {
 	}
 
 	/**
-	 * Parses a number that was validated to be an integer but might still result in a {@link NumberFormatException}
+	 * Parses a number that was validated to be an integer but might still result in
+	 * a {@link NumberFormatException}
 	 * when parsed with {@link Long#parseLong(String)} due to
 	 * overflow.
-	 * This method will return {@link Long#MIN_VALUE} or {@link Long#MAX_VALUE} respectively if that happens.
+	 * This method will return {@link Long#MIN_VALUE} or {@link Long#MAX_VALUE}
+	 * respectively if that happens.
 	 *
 	 * @param s
-	 * @return The parsed long, {@link Long#MIN_VALUE} or {@link Long#MAX_VALUE} respectively
+	 * @return The parsed long, {@link Long#MIN_VALUE} or {@link Long#MAX_VALUE}
+	 *         respectively
 	 */
 	public static long parseLong(final String s) {
 		assert s.matches("-?\\d+");
@@ -840,11 +886,13 @@ public abstract class Utils {
 	}
 
 	/**
-	 * Finds the index of the last in a {@link List} that matches the given {@link Predicate}.
+	 * Finds the index of the last in a {@link List} that matches the given
+	 * {@link Predicate}.
 	 *
 	 * @param list    the {@link List} to search.
 	 * @param checker the {@link Predicate} to match elements against.
-	 * @return the index of the element found, or -1 if no matching element was found.
+	 * @return the index of the element found, or -1 if no matching element was
+	 *         found.
 	 */
 	public static <T> int findLastIndex(List<T> list, Predicate<T> checker) {
 		int lastIndex = -1;
@@ -879,8 +927,10 @@ public abstract class Utils {
 
 		@Override
 		public boolean equals(Object object) {
-			if (this == object) return true;
-			if (!(object instanceof WordEnding ending)) return false;
+			if (this == object)
+				return true;
+			if (!(object instanceof WordEnding ending))
+				return false;
 			return Objects.equals(singular, ending.singular) && Objects.equals(plural, ending.plural);
 		}
 
@@ -892,10 +942,12 @@ public abstract class Utils {
 	}
 
 	/**
-	 * Prints a warning about the loading/use of a class that has been deprecated or removed.
+	 * Prints a warning about the loading/use of a class that has been deprecated or
+	 * removed.
 	 * This is a fairly-unsafe method and should only be used during class-loading.
 	 *
-	 * @param source The class about which to print the warning. This MUST be the class calling this method.
+	 * @param source The class about which to print the warning. This MUST be the
+	 *               class calling this method.
 	 * @return 0 (for use by interfaces)
 	 */
 	@ApiStatus.Internal
@@ -916,30 +968,31 @@ public abstract class Utils {
 			authors = "(unknown)";
 		}
 		logger.log(Level.SEVERE,
-			String.format("""
-						
-						
-						WARNING!
-						
-						An addon attempted to load a deprecated/outdated/removed '%s' class.
-						
-						The plugin '%s' tried to use a class that has been deprecated/removed in this version of Skript.
-						Please make sure you are using the latest supported version of the addon.
-						
-						If there are no supported versions, you should contact the author(s): %s, and ask them to update it.
-						
-						(This addon may not work correctly on this version of Skript.)
-						
-						""",
-				source.getSimpleName(),
-				name,
-				authors)
-		);
+				String.format(
+						"""
+
+
+								WARNING!
+
+								An addon attempted to load a deprecated/outdated/removed '%s' class.
+
+								The plugin '%s' tried to use a class that has been deprecated/removed in this version of Skript.
+								Please make sure you are using the latest supported version of the addon.
+
+								If there are no supported versions, you should contact the author(s): %s, and ask them to update it.
+
+								(This addon may not work correctly on this version of Skript.)
+
+								""",
+						source.getSimpleName(),
+						name,
+						authors));
 		return 0;
 	}
 
 	/**
 	 * Checks if the provided string is a valid {@link UUID}.
+	 * 
 	 * @param uuid the string
 	 * @return whether the given string is a valid UUID
 	 */
@@ -963,6 +1016,7 @@ public abstract class Utils {
 
 		return true;
 	}
+
 	/**
 	 * @param cls The class.
 	 * @return The component of cls if cls is an array, otherwise cls.

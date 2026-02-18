@@ -6,7 +6,7 @@ import ch.njol.skript.lang.Literal;
 import ch.njol.skript.lang.SkriptEvent;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.util.Time;
-import org.bukkit.Bukkit;
+import ch.njol.skript.util.FoliaCompat;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
@@ -28,15 +28,15 @@ public class EvtRealTime extends SkriptEvent {
 
 	static {
 		Skript.registerEvent("System Time", EvtRealTime.class, RealTimeEvent.class,
-			"at %times% [in] real time")
-				.description("Called when the local time of the system the server is running on reaches the provided real-life time.")
+				"at %times% [in] real time")
+				.description(
+						"Called when the local time of the system the server is running on reaches the provided real-life time.")
 				.examples(
-					"at 14:20 in real time:",
-					"at 2:30am real time:",
-					"at 6:10 pm in real time:",
-					"at 5:00 am and 5:00 pm in real time:",
-					"at 5:00 and 17:00 in real time:"
-				)
+						"at 14:20 in real time:",
+						"at 2:30am real time:",
+						"at 6:10 pm in real time:",
+						"at 5:00 am and 5:00 pm in real time:",
+						"at 5:00 and 17:00 in real time:")
 				.since("2.11");
 
 		TIMER = new Timer("EvtSystemTime-Tasks");
@@ -48,7 +48,7 @@ public class EvtRealTime extends SkriptEvent {
 
 	@Override
 	public boolean init(Literal<?>[] args, int matchedPattern, ParseResult parseResult) {
-		//noinspection unchecked
+		// noinspection unchecked
 		times = (Literal<Time>) args[0];
 		return true;
 	}
@@ -100,7 +100,7 @@ public class EvtRealTime extends SkriptEvent {
 			return;
 		}
 
-		Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), () -> {
+		FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), () -> {
 			RealTimeEvent event = new RealTimeEvent();
 			SkriptEventHandler.logEventStart(event);
 			SkriptEventHandler.logTriggerStart(trigger);

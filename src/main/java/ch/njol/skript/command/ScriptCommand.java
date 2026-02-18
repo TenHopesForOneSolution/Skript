@@ -29,6 +29,7 @@ import ch.njol.skript.variables.HintManager;
 import ch.njol.skript.variables.Variables;
 import ch.njol.util.StringUtils;
 import com.google.common.base.Preconditions;
+import ch.njol.skript.util.FoliaCompat;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -98,58 +99,63 @@ public class ScriptCommand implements TabExecutor {
 
 	private transient PluginCommand bukkitCommand;
 
-	private Map<UUID,Date> lastUsageMap = new HashMap<>();
+	private Map<UUID, Date> lastUsageMap = new HashMap<>();
 
-	//<editor-fold default-state="collapsed" desc="public ScriptCommand(... String usage ...)">
+	// <editor-fold default-state="collapsed" desc="public ScriptCommand(... String
+	// usage ...)">
 	/**
 	 * Creates a new ScriptCommand.
 	 * Prefer using the CommandUsage class for the usage parameter.
 	 *
-	 * @param name /name
-	 * @param pattern the Skript pattern used to parse the input into arguments.
-	 * @param arguments the list of Arguments this command takes
-	 * @param description description to display in /help
-	 * @param prefix the prefix of the command
-	 * @param usage message to display if the command was used incorrectly
-	 * @param aliases /alias1, /alias2, ...
-	 * @param permission permission or null if none
-	 * @param permissionMessage message to display if the player doesn't have the given permission
-	 * @param node the node to parse and load into a Trigger
+	 * @param name              /name
+	 * @param pattern           the Skript pattern used to parse the input into
+	 *                          arguments.
+	 * @param arguments         the list of Arguments this command takes
+	 * @param description       description to display in /help
+	 * @param prefix            the prefix of the command
+	 * @param usage             message to display if the command was used
+	 *                          incorrectly
+	 * @param aliases           /alias1, /alias2, ...
+	 * @param permission        permission or null if none
+	 * @param permissionMessage message to display if the player doesn't have the
+	 *                          given permission
+	 * @param node              the node to parse and load into a Trigger
 	 */
 	public ScriptCommand(
-		Script script, String name, String pattern, List<Argument<?>> arguments,
-		String description, @Nullable String prefix, String usage, List<String> aliases,
-		String permission, @Nullable VariableString permissionMessage, @Nullable Timespan cooldown,
-		@Nullable VariableString cooldownMessage, String cooldownBypass,
-		@Nullable VariableString cooldownStorage, int executableBy, SectionNode node
-	) {
+			Script script, String name, String pattern, List<Argument<?>> arguments,
+			String description, @Nullable String prefix, String usage, List<String> aliases,
+			String permission, @Nullable VariableString permissionMessage, @Nullable Timespan cooldown,
+			@Nullable VariableString cooldownMessage, String cooldownBypass,
+			@Nullable VariableString cooldownStorage, int executableBy, SectionNode node) {
 		this(script, name, pattern, arguments, description, prefix, new CommandUsage(null, usage),
 				aliases, permission, permissionMessage, cooldown, cooldownMessage, cooldownBypass,
 				cooldownStorage, executableBy, node);
 	}
-	//</editor-fold>
+	// </editor-fold>
 
 	/**
 	 * Creates a new ScriptCommand.
 	 *
-	 * @param name /name
-	 * @param pattern the Skript pattern used to parse the input into arguments.
-	 * @param arguments the list of Arguments this command takes
-	 * @param description description to display in /help
-	 * @param prefix the prefix of the command
-	 * @param usage message to display if the command was used incorrectly
-	 * @param aliases /alias1, /alias2, ...
-	 * @param permission permission or null if none
-	 * @param permissionMessage message to display if the player doesn't have the given permission
-	 * @param node the node to parse and load into a Trigger
+	 * @param name              /name
+	 * @param pattern           the Skript pattern used to parse the input into
+	 *                          arguments.
+	 * @param arguments         the list of Arguments this command takes
+	 * @param description       description to display in /help
+	 * @param prefix            the prefix of the command
+	 * @param usage             message to display if the command was used
+	 *                          incorrectly
+	 * @param aliases           /alias1, /alias2, ...
+	 * @param permission        permission or null if none
+	 * @param permissionMessage message to display if the player doesn't have the
+	 *                          given permission
+	 * @param node              the node to parse and load into a Trigger
 	 */
 	public ScriptCommand(
-		Script script, String name, String pattern, List<Argument<?>> arguments,
-		String description, @Nullable String prefix, CommandUsage usage, List<String> aliases,
-		String permission, @Nullable VariableString permissionMessage, @Nullable Timespan cooldown,
-		@Nullable VariableString cooldownMessage, String cooldownBypass,
-		@Nullable VariableString cooldownStorage, int executableBy, SectionNode node
-	) {
+			Script script, String name, String pattern, List<Argument<?>> arguments,
+			String description, @Nullable String prefix, CommandUsage usage, List<String> aliases,
+			String permission, @Nullable VariableString permissionMessage, @Nullable Timespan cooldown,
+			@Nullable VariableString cooldownMessage, String cooldownBypass,
+			@Nullable VariableString cooldownStorage, int executableBy, SectionNode node) {
 		Preconditions.checkNotNull(name);
 		Preconditions.checkNotNull(pattern);
 		Preconditions.checkNotNull(arguments);
@@ -171,13 +177,15 @@ public class ScriptCommand implements TabExecutor {
 		if (prefix != null) {
 			for (char c : prefix.toCharArray()) {
 				if (Character.isWhitespace(c)) {
-					Skript.warning("command /" + name + " has a whitespace in its prefix. Defaulting to '" + ScriptCommand.DEFAULT_PREFIX + "'.");
+					Skript.warning("command /" + name + " has a whitespace in its prefix. Defaulting to '"
+							+ ScriptCommand.DEFAULT_PREFIX + "'.");
 					prefix = ScriptCommand.DEFAULT_PREFIX;
 					break;
 				}
 				// char 167 is §
 				if (c == 167) {
-					Skript.warning("command /" + name + " has a section character in its prefix. Defaulting to '" + ScriptCommand.DEFAULT_PREFIX + "'.");
+					Skript.warning("command /" + name + " has a section character in its prefix. Defaulting to '"
+							+ ScriptCommand.DEFAULT_PREFIX + "'.");
 					prefix = ScriptCommand.DEFAULT_PREFIX;
 					break;
 				}
@@ -189,7 +197,7 @@ public class ScriptCommand implements TabExecutor {
 
 		this.cooldown = cooldown;
 		this.cooldownMessage = cooldownMessage == null
-				? new SimpleLiteral<>(Language.get("commands.cooldown message"),false)
+				? new SimpleLiteral<>(Language.get("commands.cooldown message"), false)
 				: cooldownMessage;
 		this.cooldownBypass = cooldownBypass;
 		this.cooldownStorage = cooldownStorage;
@@ -251,7 +259,8 @@ public class ScriptCommand implements TabExecutor {
 	}
 
 	@Override
-	public boolean onCommand(final @Nullable CommandSender sender, final @Nullable Command command, final @Nullable String label, final @Nullable String[] args) {
+	public boolean onCommand(final @Nullable CommandSender sender, final @Nullable Command command,
+			final @Nullable String label, final @Nullable String[] args) {
 		if (sender == null || label == null || args == null)
 			return false;
 		execute(sender, label, StringUtils.join(args, " "));
@@ -276,7 +285,7 @@ public class ScriptCommand implements TabExecutor {
 		if (!checkPermissions(sender, event))
 			return false;
 
-		cooldownCheck : {
+		cooldownCheck: {
 			if (sender instanceof Player && cooldown != null) {
 				Player player = ((Player) sender);
 				UUID uuid = player.getUniqueId();
@@ -302,7 +311,8 @@ public class ScriptCommand implements TabExecutor {
 		}
 
 		Runnable runnable = () -> {
-			// save previous last usage date to check if the execution has set the last usage date
+			// save previous last usage date to check if the execution has set the last
+			// usage date
 			Date previousLastUsage = null;
 			if (sender instanceof Player)
 				previousLastUsage = getLastUsage(((Player) sender).getUniqueId(), event);
@@ -313,22 +323,25 @@ public class ScriptCommand implements TabExecutor {
 			if (sender instanceof Player && !event.isCooldownCancelled()) {
 				Date lastUsage = getLastUsage(((Player) sender).getUniqueId(), event);
 				// check if the execution has set the last usage date
-				// if not, set it to the current date. if it has, we leave it alone so as not to affect the remaining/elapsed time (#5862)
+				// if not, set it to the current date. if it has, we leave it alone so as not to
+				// affect the remaining/elapsed time (#5862)
 				if (Objects.equals(lastUsage, previousLastUsage))
 					setLastUsage(((Player) sender).getUniqueId(), event, new Date());
 			}
 		};
-		if (Bukkit.isPrimaryThread()) {
+		if (FoliaCompat.isTickThread()) {
 			runnable.run();
 		} else {
-			// must not wait for the command to complete as some plugins call commands in such a way that the server will deadlock
-			Bukkit.getScheduler().scheduleSyncDelayedTask(Skript.getInstance(), runnable);
+			// must not wait for the command to complete as some plugins call commands in
+			// such a way that the server will deadlock
+			FoliaCompat.scheduleSyncDelayedTask(Skript.getInstance(), runnable);
 		}
 
 		return true; // Skript prints its own error message anyway
 	}
 
-	boolean execute2(final ScriptCommandEvent event, final CommandSender sender, final String commandLabel, final String rest) {
+	boolean execute2(final ScriptCommandEvent event, final CommandSender sender, final String commandLabel,
+			final String rest) {
 		final ParseLogHandler log = SkriptLogger.startParseLogHandler();
 		try {
 			final boolean ok = SkriptParser.parseArguments(rest, ScriptCommand.this, event);
@@ -364,8 +377,7 @@ public class ScriptCommand implements TabExecutor {
 	public boolean checkPermissions(CommandSender sender, Event event) {
 		if (!permission.isEmpty() && !sender.hasPermission(permission)) {
 			if (sender instanceof Player) {
-				List<MessageComponent> components =
-					permissionMessage.getMessageComponents(event);
+				List<MessageComponent> components = permissionMessage.getMessageComponents(event);
 				((Player) sender).spigot().sendMessage(BungeeConverter.convert(components));
 			} else {
 				sender.sendMessage(permissionMessage.getSingle(event));
@@ -398,7 +410,8 @@ public class ScriptCommand implements TabExecutor {
 	private transient Command overridden = null;
 	private transient Map<String, Command> overriddenAliases = new HashMap<>();
 
-	public void register(SimpleCommandMap commandMap, Map<String, Command> knownCommands, @Nullable Set<String> aliases) {
+	public void register(SimpleCommandMap commandMap, Map<String, Command> knownCommands,
+			@Nullable Set<String> aliases) {
 		synchronized (commandMap) {
 			overriddenAliases.clear();
 			overridden = knownCommands.put(label, bukkitCommand);
@@ -420,7 +433,8 @@ public class ScriptCommand implements TabExecutor {
 		}
 	}
 
-	public void unregister(SimpleCommandMap commandMap, Map<String, Command> knownCommands, @Nullable Set<String> aliases) {
+	public void unregister(SimpleCommandMap commandMap, Map<String, Command> knownCommands,
+			@Nullable Set<String> aliases) {
 		synchronized (commandMap) {
 			knownCommands.remove(label);
 			knownCommands.remove(prefix + ":" + label);
@@ -458,7 +472,9 @@ public class ScriptCommand implements TabExecutor {
 		helps.add(t);
 		final HelpTopic aliases = help.getHelpTopic("Aliases");
 		if (aliases instanceof IndexHelpTopic) {
-			aliases.getFullText(Bukkit.getConsoleSender()); // CraftBukkit has a lazy IndexHelpTopic class (org.bukkit.craftbukkit.help.CustomIndexHelpTopic) - maybe its used for aliases as well
+			aliases.getFullText(Bukkit.getConsoleSender()); // CraftBukkit has a lazy IndexHelpTopic class
+															// (org.bukkit.craftbukkit.help.CustomIndexHelpTopic) -
+															// maybe its used for aliases as well
 			try {
 				final Field topics = IndexHelpTopic.class.getDeclaredField("allTopics");
 				topics.setAccessible(true);
@@ -472,7 +488,7 @@ public class ScriptCommand implements TabExecutor {
 				Collections.sort(as, HelpTopicComparator.helpTopicComparatorInstance());
 				topics.set(aliases, as);
 			} catch (final Exception e) {
-				Skript.outdatedError(e);//, "error registering aliases for /" + getName());
+				Skript.outdatedError(e);// , "error registering aliases for /" + getName());
 			}
 		}
 	}
@@ -489,7 +505,7 @@ public class ScriptCommand implements TabExecutor {
 				as.removeAll(helps);
 				topics.set(aliases, as);
 			} catch (final Exception e) {
-				Skript.outdatedError(e);//, "error unregistering aliases for /" + getName());
+				Skript.outdatedError(e);// , "error unregistering aliases for /" + getName());
 			}
 		}
 		helps.clear();
@@ -612,7 +628,8 @@ public class ScriptCommand implements TabExecutor {
 
 	@Nullable
 	@Override
-	public List<String> onTabComplete(@Nullable CommandSender sender, @Nullable Command command, @Nullable String alias, @Nullable String[] args) {
+	public List<String> onTabComplete(@Nullable CommandSender sender, @Nullable Command command, @Nullable String alias,
+			@Nullable String[] args) {
 		assert args != null;
 		int argIndex = args.length - 1;
 		if (argIndex >= arguments.size())

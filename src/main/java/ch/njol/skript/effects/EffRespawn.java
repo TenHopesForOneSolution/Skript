@@ -4,7 +4,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Nullable;
 
 import ch.njol.skript.Skript;
@@ -16,14 +15,15 @@ import ch.njol.skript.lang.Effect;
 import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.log.ErrorQuality;
+import ch.njol.skript.util.FoliaCompat;
 import ch.njol.util.Kleenean;
 
 @Name("Force Respawn")
 @Description("Forces player(s) to respawn if they are dead. If this is called without delay from death event, one tick is waited before respawn attempt.")
 @Example("""
-	on death of player:
-		force event-player to respawn
-	""")
+		on death of player:
+			force event-player to respawn
+		""")
 @Since("2.2-dev21")
 public class EffRespawn extends Effect {
 
@@ -38,13 +38,15 @@ public class EffRespawn extends Effect {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public boolean init(final Expression<?>[] exprs, final int matchedPattern, final Kleenean isDelayed, final ParseResult parseResult) {
+	public boolean init(final Expression<?>[] exprs, final int matchedPattern, final Kleenean isDelayed,
+			final ParseResult parseResult) {
 		if (getParser().isCurrentEvent(PlayerRespawnEvent.class)) { // Just in case someone tries to do this
 			Skript.error("Respawning the player in a respawn event is not possible", ErrorQuality.SEMANTIC_ERROR);
 			return false;
 		}
 		players = (Expression<Player>) exprs[0];
-		// Force a delay before respawning the player if we're in the death event and there isn't already a delay
+		// Force a delay before respawning the player if we're in the death event and
+		// there isn't already a delay
 		// Unexpected behavior may occur if we don't do this
 		forceDelay = getParser().isCurrentEvent(EntityDeathEvent.class) && isDelayed.isFalse();
 		return true;
@@ -53,15 +55,9 @@ public class EffRespawn extends Effect {
 	@Override
 	protected void execute(final Event e) {
 		for (final Player p : players.getArray(e)) {
-			if (forceDelay) { // Use Bukkit runnable
-				new BukkitRunnable() {
-
-					@Override
-					public void run() {
-						p.spigot().respawn();
-					}
-
-				}.runTaskLater(Skript.getInstance(), 1);
+			if (forceDelay) {
+				FoliaCompat.runOnEntityLater(Skript.getInstance(), p,
+						() -> p.spigot().respawn(), null, 1);
 			} else { // Just respawn
 				p.spigot().respawn();
 			}

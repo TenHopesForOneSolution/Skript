@@ -2,6 +2,7 @@ package ch.njol.skript.registrations;
 
 import ch.njol.skript.Skript;
 import ch.njol.skript.SkriptAPIException;
+import ch.njol.skript.util.FoliaCompat;
 import ch.njol.skript.SkriptConfig;
 import ch.njol.skript.classes.ClassInfo;
 import ch.njol.skript.classes.Parser;
@@ -47,7 +48,8 @@ import java.util.regex.Pattern;
  */
 public abstract class Classes {
 
-	private Classes() {}
+	private Classes() {
+	}
 
 	@Nullable
 	private static ClassInfo<?>[] classInfos = null;
@@ -64,11 +66,16 @@ public abstract class Classes {
 		try {
 			Skript.checkAcceptRegistrations();
 			if (classInfosByCodeName.containsKey(info.getCodeName()))
-				throw new IllegalArgumentException("Can't register " + info.getC().getName() + " with the code name " + info.getCodeName() + " because that name is already used by " + classInfosByCodeName.get(info.getCodeName()));
+				throw new IllegalArgumentException("Can't register " + info.getC().getName() + " with the code name "
+						+ info.getCodeName() + " because that name is already used by "
+						+ classInfosByCodeName.get(info.getCodeName()));
 			if (exactClassInfos.containsKey(info.getC()))
-				throw new IllegalArgumentException("Can't register the class info " + info.getCodeName() + " because the class " + info.getC().getName() + " is already registered");
+				throw new IllegalArgumentException("Can't register the class info " + info.getCodeName()
+						+ " because the class " + info.getC().getName() + " is already registered");
 			if (info.getCodeName().length() > SQLStorage.MAX_CLASS_CODENAME_LENGTH)
-				throw new IllegalArgumentException("The codename '" + info.getCodeName() + "' is too long to be saved in a database, the maximum length allowed is " + SQLStorage.MAX_CLASS_CODENAME_LENGTH);
+				throw new IllegalArgumentException("The codename '" + info.getCodeName()
+						+ "' is too long to be saved in a database, the maximum length allowed is "
+						+ SQLStorage.MAX_CLASS_CODENAME_LENGTH);
 			exactClassInfos.put(info.getC(), info);
 			classInfosByCodeName.put(info.getCodeName(), info);
 			tempClassInfos.add(info);
@@ -113,7 +120,8 @@ public abstract class Classes {
 	}
 
 	/**
-	 * Sorts the class infos according to sub/superclasses and relations set with {@link ClassInfo#before(String...)} and {@link ClassInfo#after(String...)}.
+	 * Sorts the class infos according to sub/superclasses and relations set with
+	 * {@link ClassInfo#before(String...)} and {@link ClassInfo#after(String...)}.
 	 */
 	@SuppressFBWarnings("LI_LAZY_INIT_STATIC")
 	private static void sortClassInfos() {
@@ -164,7 +172,8 @@ public abstract class Classes {
 			}
 			ci.after().removeAll(s);
 			if (!s.isEmpty() && Skript.testing())
-				Skript.warning(s.size() + " dependency/ies could not be resolved for " + ci + ": " + StringUtils.join(s, ", "));
+				Skript.warning(s.size() + " dependency/ies could not be resolved for " + ci + ": "
+						+ StringUtils.join(s, ", "));
 		}
 
 		final List<ClassInfo<?>> classInfos = new ArrayList<>(tempClassInfos.size());
@@ -211,7 +220,7 @@ public abstract class Classes {
 
 	}
 
-	@SuppressWarnings({"null", "unused"})
+	@SuppressWarnings({ "null", "unused" })
 	private static void removeNullElements() {
 		Iterator<ClassInfo<?>> it = tempClassInfos.iterator();
 		while (it.hasNext()) {
@@ -227,7 +236,9 @@ public abstract class Classes {
 	}
 
 	/**
-	 * Get a {@link List} of the {@link ClassInfo}s the {@code pattern} can be referenced to.
+	 * Get a {@link List} of the {@link ClassInfo}s the {@code pattern} can be
+	 * referenced to.
+	 * 
 	 * @param pattern The {@link String} pattern.
 	 */
 	public static @Unmodifiable @Nullable List<ClassInfo<?>> getPatternInfos(String pattern) {
@@ -265,7 +276,8 @@ public abstract class Classes {
 	 * This method can be called even while Skript is loading.
 	 *
 	 * @param codeName
-	 * @return The class info registered with the given code name or null if the code name is invalid or not yet registered
+	 * @return The class info registered with the given code name or null if the
+	 *         code name is invalid or not yet registered
 	 */
 	@Nullable
 	public static ClassInfo<?> getClassInfoNoError(final @Nullable String codeName) {
@@ -287,7 +299,8 @@ public abstract class Classes {
 	}
 
 	/**
-	 * Gets the class info of the given class or its closest registered superclass. This method will never return null unless <tt>c</tt> is null.
+	 * Gets the class info of the given class or its closest registered superclass.
+	 * This method will never return null unless <tt>c</tt> is null.
 	 *
 	 * @param c
 	 * @return The closest superclass's info
@@ -314,19 +327,23 @@ public abstract class Classes {
 	}
 
 	/**
-	 * Gets the class info of the super type of given classes or its closest registered superclass.
-	 * This method is useful for Skript to avoid passing around "unknown" super types.
+	 * Gets the class info of the super type of given classes or its closest
+	 * registered superclass.
+	 * This method is useful for Skript to avoid passing around "unknown" super
+	 * types.
 	 *
 	 * @param classes The classes to determine a super type from.
 	 * @return The closest info for the super type of <code>classes</code>.
 	 */
-	// This method is used to avoid issues like https://github.com/SkriptLang/Skript/issues/5848
+	// This method is used to avoid issues like
+	// https://github.com/SkriptLang/Skript/issues/5848
 	public static ClassInfo<?> getSuperClassInfo(Class<?>... classes) {
 		return getSuperClassInfo(Utils.getSuperType(classes));
 	}
 
 	/**
-	 * Gets all the class info of the given class in closest order to ending on object. This list will never be empty unless <tt>c</tt> is null.
+	 * Gets all the class info of the given class in closest order to ending on
+	 * object. This list will never be empty unless <tt>c</tt> is null.
 	 *
 	 * @param c the class to check if assignable from
 	 * @return The closest list of superclass infos
@@ -349,7 +366,7 @@ public abstract class Classes {
 	/**
 	 * Mark a classinfo as having a property. Not for external use.
 	 *
-	 * @param property The property this classinfo has.
+	 * @param property  The property this classinfo has.
 	 * @param classInfo The classinfo that has the property.
 	 */
 	@ApiStatus.Internal
@@ -419,7 +436,8 @@ public abstract class Classes {
 	 * Gets the default of a class
 	 *
 	 * @param codeName
-	 * @return the expression holding the default value or null if this class doesn't have one
+	 * @return the expression holding the default value or null if this class
+	 *         doesn't have one
 	 * @throws SkriptAPIException If the given class was not registered
 	 */
 	@Nullable
@@ -432,7 +450,8 @@ public abstract class Classes {
 	 * Gets the default expression of a class
 	 *
 	 * @param c The class
-	 * @return The expression holding the default value or null if this class doesn't have one
+	 * @return The expression holding the default value or null if this class
+	 *         doesn't have one
 	 */
 	@Nullable
 	public static <T> DefaultExpression<T> getDefaultExpression(final Class<T> c) {
@@ -446,7 +465,7 @@ public abstract class Classes {
 	 * getting the {@link ClassInfo} from the closest registered superclass
 	 * (or the given object's class). Supports arrays too.
 	 */
-	@SuppressWarnings({"rawtypes", "unchecked"})
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static Object clone(Object obj) {
 		if (obj == null)
 			return null;
@@ -511,15 +530,17 @@ public abstract class Classes {
 	/**
 	 * Parses a string to get an object of the desired type.
 	 * <p>
-	 * Instead of repeatedly calling this with the same class argument, you should get a parser with {@link #getParser(Class)} and use it for parsing.
+	 * Instead of repeatedly calling this with the same class argument, you should
+	 * get a parser with {@link #getParser(Class)} and use it for parsing.
 	 * <p>
 	 * Can log an error if it returned null.
 	 *
 	 * @param s The string to parse
-	 * @param c The desired type. The returned value will be of this type or a subclass if it.
+	 * @param c The desired type. The returned value will be of this type or a
+	 *          subclass if it.
 	 * @return The parsed object
 	 */
-	@SuppressWarnings({"rawtypes", "unchecked"})
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Nullable
 	public static <T> T parse(final String s, final Class<T> c, final ParseContext context) {
 		final ParseLogHandler log = SkriptLogger.startParseLogHandler();
@@ -530,7 +551,8 @@ public abstract class Classes {
 				return t;
 			}
 			for (final ConverterInfo<?, ?> conv : Converters.getConverterInfos()) {
-				if ((context == ParseContext.COMMAND || context == ParseContext.PARSE) && (conv.getFlags() & Commands.CONVERTER_NO_COMMAND_ARGUMENTS) != 0)
+				if ((context == ParseContext.COMMAND || context == ParseContext.PARSE)
+						&& (conv.getFlags() & Commands.CONVERTER_NO_COMMAND_ARGUMENTS) != 0)
 					continue;
 				if (c.isAssignableFrom(conv.getTo())) {
 					log.clear();
@@ -552,7 +574,9 @@ public abstract class Classes {
 	}
 
 	/**
-	 * Gets a parser for parsing instances of the desired type from strings. The returned parser may only be used for parsing, i.e. you must not use its toString methods.
+	 * Gets a parser for parsing instances of the desired type from strings. The
+	 * returned parser may only be used for parsing, i.e. you must not use its
+	 * toString methods.
 	 *
 	 * @param to
 	 * @return A parser to parse object of the desired type
@@ -583,9 +607,12 @@ public abstract class Classes {
 	}
 
 	/**
-	 * Gets a parser for an exactly known class. You should usually use {@link #getParser(Class)} instead of this method.
+	 * Gets a parser for an exactly known class. You should usually use
+	 * {@link #getParser(Class)} instead of this method.
 	 * <p>
-	 * The main benefit of this method is that it's the only class info method of Skript that can be used while Skript is initializing and thus useful for parsing configs.
+	 * The main benefit of this method is that it's the only class info method of
+	 * Skript that can be used while Skript is initializing and thus useful for
+	 * parsing configs.
 	 *
 	 * @param c
 	 * @return A parser to parse object of the desired type
@@ -626,12 +653,14 @@ public abstract class Classes {
 			public String toVariableNameString(final T o) {
 				throw new UnsupportedOperationException();
 			}
-        };
+		};
 	}
 
 	/**
-	 * @param o Any object, preferably not an array: use {@link Classes#toString(Object[], boolean)} instead.
-	 * @return String representation of the object (using a parser if found or {@link String#valueOf(Object)} otherwise).
+	 * @param o Any object, preferably not an array: use
+	 *          {@link Classes#toString(Object[], boolean)} instead.
+	 * @return String representation of the object (using a parser if found or
+	 *         {@link String#valueOf(Object)} otherwise).
 	 * @see #toString(Object, StringMode)
 	 * @see #toString(Object[], boolean)
 	 * @see #toString(Object[], boolean, StringMode)
@@ -671,7 +700,8 @@ public abstract class Classes {
 			if (parser != null && ci.getC().isInstance(o)) {
 				@SuppressWarnings("unchecked")
 				final String s = mode == StringMode.MESSAGE ? ((Parser<T>) parser).toString(o, flags)
-						: mode == StringMode.DEBUG ? "[" + ci.getCodeName() + ":" + ((Parser<T>) parser).toString(o, mode) + "]"
+						: mode == StringMode.DEBUG
+								? "[" + ci.getCodeName() + ":" + ((Parser<T>) parser).toString(o, mode) + "]"
 								: ((Parser<T>) parser).toString(o, mode);
 				return s;
 			}
@@ -695,7 +725,8 @@ public abstract class Classes {
 		return toString(os, and, null, mode, 0);
 	}
 
-	private static String toString(final Object[] os, final boolean and, final @Nullable ChatColor c, final StringMode mode, final int flags) {
+	private static String toString(final Object[] os, final boolean and, final @Nullable ChatColor c,
+			final StringMode mode, final int flags) {
 		if (os.length == 0)
 			return toString(null);
 		if (os.length == 1)
@@ -716,18 +747,22 @@ public abstract class Classes {
 	}
 
 	/**
-	 * consists of {@link Yggdrasil#MAGIC_NUMBER} and {@link Variables#YGGDRASIL_VERSION}
+	 * consists of {@link Yggdrasil#MAGIC_NUMBER} and
+	 * {@link Variables#YGGDRASIL_VERSION}
 	 */
-	private final static byte[] YGGDRASIL_START = {(byte) 'Y', (byte) 'g', (byte) 'g', 0, (Variables.YGGDRASIL_VERSION >>> 8) & 0xFF, Variables.YGGDRASIL_VERSION & 0xFF};
+	private final static byte[] YGGDRASIL_START = { (byte) 'Y', (byte) 'g', (byte) 'g', 0,
+			(Variables.YGGDRASIL_VERSION >>> 8) & 0xFF, Variables.YGGDRASIL_VERSION & 0xFF };
 
 	@SuppressWarnings("null")
 	private final static Charset UTF_8 = Charset.forName("UTF-8");
 
 	private static byte[] getYggdrasilStart(final ClassInfo<?> c) throws NotSerializableException {
-		assert Enum.class.isAssignableFrom(Kleenean.class) && Tag.getType(Kleenean.class) == Tag.T_ENUM : Tag.getType(Kleenean.class); // TODO why is this check here?
+		assert Enum.class.isAssignableFrom(Kleenean.class) && Tag.getType(Kleenean.class) == Tag.T_ENUM
+				: Tag.getType(Kleenean.class); // TODO why is this check here?
 		final Tag t = Tag.getType(c.getC());
 		assert t.isWrapper() || t == Tag.T_STRING || t == Tag.T_OBJECT || t == Tag.T_ENUM;
-		final byte[] cn = t == Tag.T_OBJECT || t == Tag.T_ENUM ? Variables.yggdrasil.getID(c.getC()).getBytes(UTF_8) : null;
+		final byte[] cn = t == Tag.T_OBJECT || t == Tag.T_ENUM ? Variables.yggdrasil.getID(c.getC()).getBytes(UTF_8)
+				: null;
 		final byte[] r = new byte[YGGDRASIL_START.length + 1 + (cn == null ? 0 : 1 + cn.length)];
 		int i = 0;
 		for (; i < YGGDRASIL_START.length; i++)
@@ -743,15 +778,16 @@ public abstract class Classes {
 	}
 
 	/**
-	 * Must be called on the appropriate thread for the given value (i.e. the main thread currently)
+	 * Must be called on the appropriate thread for the given value (i.e. the main
+	 * thread currently)
 	 */
 	public static SerializedVariable.@Nullable Value serialize(@Nullable Object object) {
 		if (object == null)
 			return null;
 
 		// temporary
-		assert Bukkit.isPrimaryThread();
-		
+		assert FoliaCompat.isTickThread();
+
 		ClassInfo<?> classInfo = getSuperClassInfo(object.getClass());
 		if (classInfo.getSerializeAs() != null) {
 			classInfo = getExactClassInfo(classInfo.getSerializeAs());
@@ -765,13 +801,13 @@ public abstract class Classes {
 				return null;
 			}
 		}
-		
+
 		Serializer<?> serializer = classInfo.getSerializer();
 		if (serializer == null) // value cannot be saved
 			return null;
-		
-		assert !serializer.mustSyncDeserialization() || Bukkit.isPrimaryThread();
-		
+
+		assert !serializer.mustSyncDeserialization() || FoliaCompat.isTickThread();
+
 		try {
 			ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
 			YggdrasilOutputStream yggdrasilOutputStream = Variables.yggdrasil.newOutputStream(byteOutputStream);
@@ -783,16 +819,18 @@ public abstract class Classes {
 			byte[] byteArray = byteOutputStream.toByteArray();
 			byte[] start = getYggdrasilStart(classInfo);
 			for (int i = 0; i < start.length; i++)
-				assert byteArray[i] == start[i] : object + " (" + classInfo.getC().getName() + "); " + Arrays.toString(start) + ", " + Arrays.toString(byteArray);
+				assert byteArray[i] == start[i] : object + " (" + classInfo.getC().getName() + "); "
+						+ Arrays.toString(start) + ", " + Arrays.toString(byteArray);
 			byte[] byteArrayCopy = new byte[byteArray.length - start.length];
 			System.arraycopy(byteArray, start.length, byteArrayCopy, 0, byteArrayCopy.length);
 
 			Object deserialized;
 			assert equals(object,
-				deserialized = deserialize(classInfo, new ByteArrayInputStream(byteArrayCopy)))
-				: object + " (" + object.getClass() + ") != " + deserialized + " ("
-				+ (deserialized == null ? null : deserialized.getClass()) + "): " + Arrays.toString(byteArray);
-			
+					deserialized = deserialize(classInfo, new ByteArrayInputStream(byteArrayCopy)))
+					: object + " (" + object.getClass() + ") != " + deserialized + " ("
+							+ (deserialized == null ? null : deserialized.getClass()) + "): "
+							+ Arrays.toString(byteArray);
+
 			return new SerializedVariable.Value(classInfo.getCodeName(), byteArrayCopy);
 		} catch (IOException ex) { // shouldn't happen
 			Skript.exception(ex);
@@ -801,7 +839,8 @@ public abstract class Classes {
 	}
 
 	private static boolean equals(final @Nullable Object o, final @Nullable Object d) {
-		if (o instanceof Chunk) { // CraftChunk does neither override equals nor is it a "coordinate-specific singleton" like Block
+		if (o instanceof Chunk) { // CraftChunk does neither override equals nor is it a "coordinate-specific
+									// singleton" like Block
 			if (!(d instanceof Chunk))
 				return false;
 			final Chunk c1 = (Chunk) o, c2 = (Chunk) d;
@@ -826,7 +865,8 @@ public abstract class Classes {
 	@Nullable
 	public static Object deserialize(final ClassInfo<?> type, InputStream value) {
 		Serializer<?> s;
-		assert (s = type.getSerializer()) != null && (s.mustSyncDeserialization() ? Bukkit.isPrimaryThread() : true) : type + "; " + s + "; " + Bukkit.isPrimaryThread();
+		assert (s = type.getSerializer()) != null && (s.mustSyncDeserialization() ? FoliaCompat.isTickThread() : true)
+				: type + "; " + s + "; " + FoliaCompat.isTickThread();
 		YggdrasilInputStream in = null;
 		try {
 			value = new SequenceInputStream(new ByteArrayInputStream(getYggdrasilStart(type)), value);
@@ -840,11 +880,13 @@ public abstract class Classes {
 			if (in != null) {
 				try {
 					in.close();
-				} catch (final IOException e) {}
+				} catch (final IOException e) {
+				}
 			}
 			try {
 				value.close();
-			} catch (final IOException e) {}
+			} catch (final IOException e) {
+			}
 		}
 	}
 
@@ -860,7 +902,7 @@ public abstract class Classes {
 	@Deprecated(since = "2.3.0", forRemoval = true)
 	@Nullable
 	public static Object deserialize(final String type, final String value) {
-		assert Bukkit.isPrimaryThread();
+		assert FoliaCompat.isTickThread();
 		final ClassInfo<?> ci = getClassInfoNoError(type);
 		if (ci == null)
 			return null;

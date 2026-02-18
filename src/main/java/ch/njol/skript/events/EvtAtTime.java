@@ -9,6 +9,8 @@ import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.registrations.Classes;
 import ch.njol.skript.util.Time;
 import ch.njol.util.Math2;
+import ch.njol.skript.util.FoliaCompat;
+import ch.njol.skript.util.FoliaCompat.FoliaTaskHandle;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.event.Event;
@@ -24,11 +26,12 @@ public class EvtAtTime extends SkriptEvent implements Comparable<EvtAtTime> {
 
 	static {
 		Skript.registerEvent("*At Time", EvtAtTime.class, ScheduledEvent.class, "at %time% [in %worlds%]")
-				.description("An event that occurs at a given <a href='#time'>minecraft time</a> in every world or only in specific worlds.")
+				.description(
+						"An event that occurs at a given <a href='#time'>minecraft time</a> in every world or only in specific worlds.")
 				.examples("at 18:00", "at 7am in \"world\"")
 				.since("1.3.4");
 	}
-	
+
 	private static final int CHECK_PERIOD = 10;
 
 	private static final Map<World, EvtAtInfo> TRIGGERS = new ConcurrentHashMap<>();
@@ -40,7 +43,8 @@ public class EvtAtTime extends SkriptEvent implements Comparable<EvtAtTime> {
 		private int lastCheckedTime;
 
 		/**
-		 * A list of all {@link EvtAtTime}s in the world this info object is responsible for.
+		 * A list of all {@link EvtAtTime}s in the world this info object is responsible
+		 * for.
 		 * Sorted by the time they're listening for in increasing order.
 		 */
 		private final PriorityQueue<EvtAtTime> instances = new PriorityQueue<>(EvtAtTime::compareTo);
@@ -83,9 +87,9 @@ public class EvtAtTime extends SkriptEvent implements Comparable<EvtAtTime> {
 				iterator.remove();
 		}
 
-		if (taskID != -1 && TRIGGERS.isEmpty()) { // Unregister Bukkit listener if possible
-			Bukkit.getScheduler().cancelTask(taskID);
-			taskID = -1;
+		if (taskHandle != null && TRIGGERS.isEmpty()) { // Unregister Bukkit listener if possible
+			taskHandle.cancel();
+			taskHandle = null;
 		}
 	}
 
@@ -99,14 +103,14 @@ public class EvtAtTime extends SkriptEvent implements Comparable<EvtAtTime> {
 		return false;
 	}
 
-	private static int taskID = -1;
-	
+	private static @Nullable FoliaTaskHandle taskHandle = null;
+
 	private static void registerListener() {
-		if (taskID != -1)
+		if (taskHandle != null)
 			return;
 		// For each world:
 		// check each instance in order until triggerTime > (worldTime + period)
-		taskID = Bukkit.getScheduler().scheduleSyncRepeatingTask(Skript.getInstance(), () -> {
+		taskHandle = FoliaCompat.runTaskTimer(Skript.getInstance(), () -> {
 			for (Entry<World, EvtAtInfo> entry : TRIGGERS.entrySet()) {
 				EvtAtInfo info = entry.getValue();
 				int worldTime = (int) entry.getKey().getTime();
@@ -119,7 +123,8 @@ public class EvtAtTime extends SkriptEvent implements Comparable<EvtAtTime> {
 				// Check if time changed, e.g. by a command or plugin
 				// if the info was last checked more than 2 cycles ago
 				// then reset the last checked time to the period just before now.
-				if (info.lastCheckedTime + CHECK_PERIOD * 2 < worldTime || (info.lastCheckedTime > worldTime && info.lastCheckedTime - 24000 + CHECK_PERIOD * 2 < worldTime))
+				if (info.lastCheckedTime + CHECK_PERIOD * 2 < worldTime || (info.lastCheckedTime > worldTime
+						&& info.lastCheckedTime - 24000 + CHECK_PERIOD * 2 < worldTime))
 					info.lastCheckedTime = Math2.mod(worldTime - CHECK_PERIOD, 24000);
 
 				// if we rolled over from 23999 to 0, subtract 24000 from last checked
@@ -129,7 +134,8 @@ public class EvtAtTime extends SkriptEvent implements Comparable<EvtAtTime> {
 
 				// loop instances from earliest to latest
 				for (EvtAtTime event : info.instances) {
-					// if we just rolled over, the last checked time will be x - 24000, so we need to do the same to the event time
+					// if we just rolled over, the last checked time will be x - 24000, so we need
+					// to do the same to the event time
 					int eventTime = midnight && event.time > 12000 ? event.time - 24000 : event.time;
 
 					// if the event time is in the future, we don't need to check any more events.
@@ -140,7 +146,8 @@ public class EvtAtTime extends SkriptEvent implements Comparable<EvtAtTime> {
 					if (eventTime <= info.lastCheckedTime)
 						continue;
 
-					// anything that makes it here must satisfy lastCheckedTime < eventTime <= worldTime
+					// anything that makes it here must satisfy lastCheckedTime < eventTime <=
+					// worldTime
 					// and therefore should trigger this event.
 					ScheduledEvent scheduledEvent = new ScheduledEvent(entry.getKey());
 					SkriptEventHandler.logEventStart(scheduledEvent);
@@ -153,15 +160,15 @@ public class EvtAtTime extends SkriptEvent implements Comparable<EvtAtTime> {
 			}
 		}, 0, CHECK_PERIOD);
 	}
-	
+
 	@Override
 	public String toString(@Nullable Event event, boolean debug) {
 		return "at " + Time.toString(time) + " in worlds " + Classes.toString(worlds, true);
 	}
-	
+
 	@Override
 	public int compareTo(@Nullable EvtAtTime event) {
 		return event == null ? time : time - event.time;
 	}
-	
+
 }

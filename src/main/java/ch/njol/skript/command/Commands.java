@@ -10,6 +10,7 @@ import ch.njol.skript.localization.ArgsMessage;
 import ch.njol.skript.localization.Message;
 import ch.njol.skript.log.RetainingLogHandler;
 import ch.njol.skript.log.SkriptLogger;
+import ch.njol.skript.util.FoliaCompat;
 import ch.njol.skript.util.SkriptColor;
 import ch.njol.skript.variables.Variables;
 import com.google.common.base.Preconditions;
@@ -57,7 +58,8 @@ public abstract class Commands {
 	public final static Message m_correct_usage = new Message("commands.correct usage");
 
 	/**
-	 * A Converter flag declaring that a Converter cannot be used for parsing command arguments.
+	 * A Converter flag declaring that a Converter cannot be used for parsing
+	 * command arguments.
 	 */
 	public static final int CONVERTER_NO_COMMAND_ARGUMENTS = 8;
 
@@ -73,16 +75,17 @@ public abstract class Commands {
 	static {
 		init(); // separate method for the annotation
 	}
-	public static Set<String> getScriptCommands(){
+
+	public static Set<String> getScriptCommands() {
 		return commands.keySet();
 	}
 
 	@Nullable
-	public static SimpleCommandMap getCommandMap(){
+	public static SimpleCommandMap getCommandMap() {
 		return commandMap;
 	}
 
-	@SuppressWarnings({"unchecked", "removal"})
+	@SuppressWarnings({ "unchecked", "removal" })
 	private static void init() {
 		try {
 			if (Bukkit.getPluginManager() instanceof SimplePluginManager) {
@@ -98,7 +101,8 @@ public abstract class Commands {
 					Field aliasesField = SimpleCommandMap.class.getDeclaredField("aliases");
 					aliasesField.setAccessible(true);
 					cmAliases = (Set<String>) aliasesField.get(commandMap);
-				} catch (NoSuchFieldException ignored) {}
+				} catch (NoSuchFieldException ignored) {
+				}
 			}
 		} catch (SecurityException e) {
 			Skript.error("Please disable the security manager");
@@ -129,8 +133,10 @@ public abstract class Commands {
 
 		@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 		public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
-			// Spigot will simply report that the command doesn't exist if a player does not have permission to use it.
-			// This is good security but, well, it's a breaking change for Skript. So we need to check for permissions
+			// Spigot will simply report that the command doesn't exist if a player does not
+			// have permission to use it.
+			// This is good security but, well, it's a breaking change for Skript. So we
+			// need to check for permissions
 			// ourselves and handle those messages, for every command.
 
 			// parse command, see if it's a skript command
@@ -158,7 +164,8 @@ public abstract class Commands {
 		public void onServerCommand(ServerCommandEvent event) {
 			if (event.getCommand().isEmpty() || event.isCancelled())
 				return;
-			if ((Skript.testing() || SkriptConfig.enableEffectCommands.value()) && event.getCommand().startsWith(SkriptConfig.effectCommandToken.value())) {
+			if ((Skript.testing() || SkriptConfig.enableEffectCommands.value())
+					&& event.getCommand().startsWith(SkriptConfig.effectCommandToken.value())) {
 				if (handleEffectCommand(event.getSender(), event.getCommand()))
 					event.setCancelled(true);
 			}
@@ -166,7 +173,9 @@ public abstract class Commands {
 	};
 
 	static boolean handleEffectCommand(CommandSender sender, String command) {
-		if (!(Skript.testing() || sender instanceof ConsoleCommandSender || sender.hasPermission("skript.effectcommands") || SkriptConfig.allowOpsToUseEffectCommands.value() && sender.isOp()))
+		if (!(Skript.testing() || sender instanceof ConsoleCommandSender
+				|| sender.hasPermission("skript.effectcommands")
+				|| SkriptConfig.allowOpsToUseEffectCommands.value() && sender.isOp()))
 			return false;
 		try {
 			command = "" + command.substring(SkriptConfig.effectCommandToken.value().length()).trim();
@@ -185,19 +194,23 @@ public abstract class Commands {
 					log.clear(); // ignore warnings and stuff
 					log.printLog();
 					if (!effectCommand.isCancelled()) {
-						sender.sendMessage(ChatColor.GRAY + "executing '" + SkriptColor.replaceColorChar(command) + "'");
+						sender.sendMessage(
+								ChatColor.GRAY + "executing '" + SkriptColor.replaceColorChar(command) + "'");
 						if (SkriptConfig.logEffectCommands.value() && !(sender instanceof ConsoleCommandSender))
-							Skript.info(sender.getName() + " issued effect command: " + SkriptColor.replaceColorChar(command));
+							Skript.info(sender.getName() + " issued effect command: "
+									+ SkriptColor.replaceColorChar(command));
 						TriggerItem.walk(effect, effectCommand);
 						Variables.removeLocals(effectCommand);
 					} else {
-						sender.sendMessage(ChatColor.RED + "your effect command '" + SkriptColor.replaceColorChar(command) + "' was cancelled.");
+						sender.sendMessage(ChatColor.RED + "your effect command '"
+								+ SkriptColor.replaceColorChar(command) + "' was cancelled.");
 					}
 				} else {
 					if (sender == Bukkit.getConsoleSender()) // log as SEVERE instead of INFO like printErrors below
 						SkriptLogger.LOGGER.severe("Error in: " + SkriptColor.replaceColorChar(command));
 					else
-						sender.sendMessage(ChatColor.RED + "Error in: " + ChatColor.GRAY + SkriptColor.replaceColorChar(command));
+						sender.sendMessage(
+								ChatColor.RED + "Error in: " + ChatColor.GRAY + SkriptColor.replaceColorChar(command));
 					log.printErrors(sender, "(No specific information is available)");
 				}
 			} finally {
@@ -205,8 +218,10 @@ public abstract class Commands {
 			}
 			return true;
 		} catch (Exception e) {
-			Skript.exception(e, "Unexpected error while executing effect command '" + SkriptColor.replaceColorChar(command) + "' by '" + sender.getName() + "'");
-			sender.sendMessage(ChatColor.RED + "An internal error occurred while executing this effect. Please refer to the server log for details.");
+			Skript.exception(e, "Unexpected error while executing effect command '"
+					+ SkriptColor.replaceColorChar(command) + "' by '" + sender.getName() + "'");
+			sender.sendMessage(ChatColor.RED
+					+ "An internal error occurred while executing this effect. Please refer to the server log for details.");
 			return true;
 		}
 	}
@@ -235,8 +250,7 @@ public abstract class Commands {
 		if (existingCommand != null && existingCommand.getLabel().equals(command.getLabel())) {
 			Script script = existingCommand.getScript();
 			Skript.error("A command with the name /" + existingCommand.getName() + " is already defined"
-				+ (script != null ? (" in " + script.getConfig().getFileName()) : "")
-			);
+					+ (script != null ? (" in " + script.getConfig().getFileName()) : ""));
 			return;
 		}
 
@@ -281,13 +295,15 @@ public abstract class Commands {
 			Bukkit.getPluginManager().registerEvents(new Listener() {
 				@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
 				public void onPlayerChat(AsyncPlayerChatEvent event) {
-					if ((!SkriptConfig.enableEffectCommands.value() && !Skript.testing()) || !event.getMessage().startsWith(SkriptConfig.effectCommandToken.value()))
+					if ((!SkriptConfig.enableEffectCommands.value() && !Skript.testing())
+							|| !event.getMessage().startsWith(SkriptConfig.effectCommandToken.value()))
 						return;
 					if (!event.isAsynchronous()) {
 						if (handleEffectCommand(event.getPlayer(), event.getMessage()))
 							event.setCancelled(true);
 					} else {
-						Future<Boolean> f = Bukkit.getScheduler().callSyncMethod(Skript.getInstance(), () -> handleEffectCommand(event.getPlayer(), event.getMessage()));
+						Future<Boolean> f = FoliaCompat.callSyncMethod(Skript.getInstance(),
+								() -> handleEffectCommand(event.getPlayer(), event.getMessage()));
 						try {
 							while (true) {
 								try {
